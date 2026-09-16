@@ -1,0 +1,85 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 35,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        TIC["<b>Teacher-in-Charge</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 13.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["13.0 Review & Resolve Dept. Queries (Sub-Processes)"]
+        direction TB
+        P13_1(("<b>13.1</b><br/>Fetch & Render<br/>Query Details"))
+        P13_2(("<b>13.2</b><br/>Validate TIC<br/>Decision"))
+        P13_3(("<b>13.3</b><br/>Commit Resolution<br/>& Update Status"))
+        P13_4(("<b>13.4</b><br/>Notify Student &<br/>Flag KB Candidate"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES & INTERNAL ROUTING
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Stores & Routing"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        P14[["<b>Process 14.0</b><br/>(Request/Review Docs)"]]
+        P11[["<b>Process 11.0</b><br/>(Manage KB)"]]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtEmail["Resend API<br/>(Email Svc)"]
+        StudentDash(["Student Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 13.1 Fetch Details ---
+    TIC -->|"1. Select Departmental Query"| P13_1
+    P13_1 <-->|"2. Read Ticket &<br/>Student Info"| D3
+    P13_1 -->|"3. Display Complete Details"| TIC
+    
+    %% --- 13.2 Validate Decision ---
+    TIC -->|"4. Enters Verified Resolution /<br/>Selects 'Need Document'"| P13_2
+    P13_2 -->|"Alt A1: Route Doc Request<br/>Alt A2: Route Doc Rejection"| P14
+    
+    %% --- 13.3 Commit Resolution ---
+    P13_2 -->|"5. Validated Resolution Text"| P13_3
+    P13_3 -->|"6. Write Resolution &<br/>Status: 'Resolved'"| D3
+    
+    %% --- 13.4 Notify & Flag ---
+    P13_3 -->|"7. Resolution Success Event"| P13_4
+    P13_4 -->|"8. Display Final Resolution"| StudentDash
+    P13_4 -->|"9. Dispatch Notification"| ExtEmail
+    P13_4 -->|"10. Forward Verified Dept.<br/>Resolution as Candidate (SR 5)"| P11
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef routeStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class P13_1,P13_2,P13_3,P13_4 processStyle;
+    class D3 storeStyle;
+    class P14,P11 routeStyle;
+    class TIC actorStyle;
+    class ExtEmail,StudentDash extStyle;

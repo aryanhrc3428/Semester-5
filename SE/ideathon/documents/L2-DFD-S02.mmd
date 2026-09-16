@@ -1,0 +1,89 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 30,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Student["<b>Student</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 2.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["2.0 Ask AI Query (Sub-Processes)"]
+        direction TB
+        P2_1(("<b>2.1</b><br/>Validate &<br/>Preprocess Input"))
+        P2_2(("<b>2.2</b><br/>Generate Query<br/>Embedding"))
+        P2_3(("<b>2.3</b><br/>Semantic Vector<br/>Search"))
+        P2_4(("<b>2.4</b><br/>Evaluate Relevance<br/>& Confidence"))
+        P2_5(("<b>2.5</b><br/>Generate Grounded<br/>Response"))
+        P2_6(("<b>2.6</b><br/>Format Output &<br/>Log Interaction"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D2[("<b>D2: KNOWLEDGE</b><br/>(pgvector DB)")]
+        D3[("<b>D3: QUERIES</b><br/>(History/Tracking)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services"]
+        direction TB
+        ExtLLM["Gemini API<br/>(LLM & Embeddings)"]
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 2.1 Validate & Preprocess ---
+    Student -->|"1. Raw NL Query"| P2_1
+    P2_1 -->|"Alt A2/A3: Reject or<br/>Request Clarification"| Student
+    
+    %% --- 2.2 Generate Embedding ---
+    P2_1 -->|"2. Sanitized Query"| P2_2
+    P2_2 <-->|"3. Request Vector<br/>4. Return 1536-d Vector"| ExtLLM
+    
+    %% --- 2.3 Semantic Search ---
+    P2_2 -->|"5. Query Vector Array"| P2_3
+    P2_3 <-->|"6. Cosine Similarity Search<br/>7. Top-K Relevant Entries"| D2
+    
+    %% --- 2.4 Evaluate Relevance ---
+    P2_3 -->|"8. Top-K Entries & Distances"| P2_4
+    P2_4 -->|"Alt A1: Low Confidence<br/>(Route to Escalation UI)"| P2_6
+    
+    %% --- 2.5 Generate Response ---
+    P2_4 -->|"9. High Confidence<br/>(Verified Context + Query)"| P2_5
+    P2_5 <-->|"10. Prompt w/ Context<br/>11. Grounded Answer"| ExtLLM
+    
+    %% --- 2.6 Format & Log ---
+    P2_5 -->|"12. Drafted AI Response"| P2_6
+    P2_6 -->|"13. Final Answer or<br/>Raise Query Option"| Student
+    P2_6 -->|"14. Log Query & Response"| D3
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P2_1,P2_2,P2_3,P2_4,P2_5,P2_6 processStyle;
+    class D2,D3 storeStyle;
+    class Student actorStyle;
+    class ExtLLM extStyle;

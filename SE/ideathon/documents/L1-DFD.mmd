@@ -1,0 +1,179 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 40,
+    "rankSpacing": 100,
+    "padding": 20
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Student["<b>Student</b>"]
+        TIC["<b>Teacher-in-Charge</b>"]
+        Admin["<b>Admin</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: PROCESSES (Auto-sorted by Mermaid to minimize crossings)
+    %% -------------------------------------------------------------
+    subgraph Processes ["2. Core Processes (16 Use Cases)"]
+        P1(("<b>1.0</b><br/>Login / Auth"))
+        P2(("<b>2.0</b><br/>Ask AI Query"))
+        P3(("<b>3.0</b><br/>Raise New Query"))
+        P4(("<b>4.0</b><br/>Track Status"))
+        P5(("<b>5.0</b><br/>Upload Docs"))
+        P6(("<b>6.0</b><br/>View/Book Mtgs"))
+        P7(("<b>7.0</b><br/>Receive Alerts"))
+        P8(("<b>8.0</b><br/>View New Queries"))
+        P9(("<b>9.0</b><br/>Resolve Directly"))
+        P10(("<b>10.0</b><br/>Forward Query"))
+        P11(("<b>11.0</b><br/>Manage KB"))
+        P12(("<b>12.0</b><br/>View Assigned"))
+        P13(("<b>13.0</b><br/>Resolve Dept Q's"))
+        P14(("<b>14.0</b><br/>Request/Review Docs"))
+        P15(("<b>15.0</b><br/>View Timetable"))
+        P16(("<b>16.0</b><br/>Schedule/Cancel"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D1[("<b>D1: USERS</b><br/>(Auth DB)")]
+        D2[("<b>D2: KNOWLEDGE</b><br/>(Vector DB)")]
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D4[("<b>D4: DOCUMENTS</b><br/>(File Meta)")]
+        D5[("<b>D5: MEETINGS</b><br/>(Bookings)")]
+        D6[("<b>D6: NOTIFICATIONS</b><br/>(Status)")]
+        D7[("<b>D7: AUDIT_LOGS</b><br/>(Actions)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services"]
+        direction TB
+        ExtAuth["College SSO"]
+        ExtLLM["Gemini API"]
+        ExtS3["AWS S3"]
+        ExtTimetable["Timetable Svc"]
+        ExtEmail["Resend API"]
+        UserInbox(["User Email Inboxes"])
+    end
+
+    %% =============================================================
+    %% STRICT LEFT-TO-RIGHT DATA FLOWS (No backward arrows)
+    %% =============================================================
+
+    %% --- ACTOR TO PROCESS FLOWS ---
+    Student -->|"Auth"| P1
+    Student -->|"Prompt"| P2
+    Student -->|"Details"| P3
+    Student -->|"Check"| P4
+    Student -->|"File"| P5
+    Student -->|"Slot"| P6
+
+    Admin -->|"Auth"| P1
+    Admin -->|"View"| P8
+    Admin -->|"Resolution"| P9
+    Admin -->|"Assign"| P10
+    Admin -->|"Updates"| P11
+
+    TIC -->|"Auth"| P1
+    TIC -->|"View"| P12
+    TIC -->|"Resolution"| P13
+    TIC -->|"Doc Review"| P14
+    TIC -->|"Check"| P15
+    TIC -->|"Manage"| P16
+
+    %% --- PROCESS TO DATA STORE / EXTERNAL FLOWS ---
+    
+    %% P1.0 Login
+    P1 -->|"Verify Identity"| ExtAuth
+    P1 -->|"Read Role"| D1
+    P1 -->|"Log Access"| D7
+
+    %% P2.0 AI Query
+    P2 -->|"Semantic Search"| D2
+    P2 -->|"Generate Ans"| ExtLLM
+    P2 -->|"Log History"| D3
+
+    %% P3.0 Raise Query
+    P3 -->|"Create"| D3
+
+    %% P4.0 Track Status
+    P4 -->|"Read"| D3
+
+    %% P5.0 Upload Docs
+    P5 -->|"Save Binary"| ExtS3
+    P5 -->|"Save Meta"| D4
+    P5 -->|"Update Status"| D3
+
+    %% P6.0 Book Meetings
+    P6 -->|"Read/Write"| D5
+    P6 -->|"Check Conflict"| ExtTimetable
+
+    %% P7.0 Notifications
+    P7 -->|"Poll Events"| D3
+    P7 -->|"Poll Events"| D4
+    P7 -->|"Poll Events"| D5
+    P7 -->|"Log Delivery"| D6
+    P7 -->|"Send Payload"| ExtEmail
+
+    %% P8.0 View New Queries
+    P8 -->|"Read"| D3
+
+    %% P9.0 Resolve Directly
+    P9 -->|"Update"| D3
+    P9 -->|"Log Action"| D7
+
+    %% P10.0 Forward Query
+    P10 -->|"Update"| D3
+
+    %% P11.0 Manage KB
+    P11 -->|"Read Candidate"| D3
+    P11 -->|"Get Embedding"| ExtLLM
+    P11 -->|"Write Vector"| D2
+    P11 -->|"Log Action"| D7
+
+    %% P12.0 View Assigned
+    P12 -->|"Read"| D3
+
+    %% P13.0 Resolve Dept Query
+    P13 -->|"Update"| D3
+    P13 -->|"Log Action"| D7
+
+    %% P14.0 Request/Review Docs
+    P14 -->|"Update Status"| D3
+    P14 -->|"Read/Write Meta"| D4
+    P14 -->|"Retrieve File"| ExtS3
+
+    %% P15.0 View Timetable
+    P15 -->|"Read Local"| D5
+    P15 -->|"Fetch Inst. Schedule"| ExtTimetable
+
+    %% P16.0 Schedule/Cancel Mtgs
+    P16 -->|"Lock Slot"| D5
+    P16 -->|"Sync Schedule"| ExtTimetable
+
+    %% Outbound Alerts
+    ExtEmail -.->|"Deliver Alert"| UserInbox
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16 processStyle;
+    class D1,D2,D3,D4,D5,D6,D7 storeStyle;
+    class Student,Admin,TIC actorStyle;
+    class ExtAuth,ExtLLM,ExtS3,ExtTimetable,ExtEmail,UserInbox extStyle;

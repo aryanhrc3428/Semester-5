@@ -1,0 +1,89 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 35,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Student["<b>Student</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 6.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["6.0 View, Request & Accept Mtg (Sub-Processes)"]
+        direction TB
+        P6_1(("<b>6.1</b><br/>Fetch & Filter<br/>Timetable"))
+        P6_2(("<b>6.2</b><br/>Validate Slot<br/>Availability"))
+        P6_3(("<b>6.3</b><br/>Process Decision<br/>& Commit Record"))
+        P6_4(("<b>6.4</b><br/>Confirm &<br/>Dispatch Alerts"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Query/TIC Context)")]
+        D5[("<b>D5: MEETINGS</b><br/>(Bookings DB)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtTimetable["Institutional<br/>Timetable Svc"]
+        TICDash(["TIC Dashboard<br/>(UI View)"])
+        ExtEmail["Resend API<br/>(Email Svc)"]
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 6.1 Fetch Timetable ---
+    Student -->|"1. Open Meetings for Query"| P6_1
+    P6_1 <-->|"2. Read Assigned TIC Context<br/>(Privacy Rule)"| D3
+    P6_1 <-->|"3. Fetch Open Slots"| ExtTimetable
+    P6_1 <-->|"4. Filter Existing Bookings"| D5
+    P6_1 -->|"Alt A3: No Slots Available Error"| Student
+    
+    %% --- 6.2 Validate Slot ---
+    P6_1 -->|"5. Display Available Dates/Times"| Student
+    Student -->|"6. Select Suitable Slot"| P6_2
+    P6_2 <-->|"7. Concurrency / Conflict Check"| D5
+    P6_2 -->|"Alt A2: Slot No Longer Available"| Student
+    
+    %% --- 6.3 Commit Record ---
+    P6_2 -->|"8. Slot Validated"| P6_3
+    Student -->|"Alt A1: Decline/Cancel Proposed Mtg"| P6_3
+    Student -->|"9. Confirm Selection"| P6_3
+    P6_3 -->|"10. Create/Update Record<br/>(Status: Booked/Declined)"| D5
+    
+    %% --- 6.4 Notify & Confirm ---
+    P6_3 -->|"11. Booking/Decision Event"| P6_4
+    P6_4 -->|"12. Display Meeting Details"| Student
+    P6_4 -->|"13. Update Visible Schedule"| TICDash
+    P6_4 -->|"14. Notify Student & TIC"| ExtEmail
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P6_1,P6_2,P6_3,P6_4 processStyle;
+    class D3,D5 storeStyle;
+    class Student actorStyle;
+    class ExtTimetable,ExtEmail,TICDash extStyle;

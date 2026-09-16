@@ -1,0 +1,83 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 40,
+    "rankSpacing": 90,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        TIC["<b>Teacher-in-Charge</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 15.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["15.0 View Timetable (Sub-Processes)"]
+        direction TB
+        P15_1(("<b>15.1</b><br/>Parse Context &<br/>Request Period"))
+        P15_2(("<b>15.2</b><br/>Fetch Institutional<br/>Schedule"))
+        P15_3(("<b>15.3</b><br/>Fetch Local<br/>System Bookings"))
+        P15_4(("<b>15.4</b><br/>Merge Availability<br/>& Render UI"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES & ROUTING
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Stores & Routing"]
+        direction TB
+        D5[("<b>D5: MEETINGS</b><br/>(Bookings DB)")]
+        P16[["<b>Process 16.0</b><br/>(Schedule/Cancel Meetings)"]]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtTimetable["Institutional<br/>Timetable Svc"]
+        TICDash(["TIC Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 15.1 Request Period ---
+    TIC -->|"1. Opens Section /<br/>Selects Target Period"| P15_1
+    P15_1 -->|"2. TIC Context (Dept/Role)<br/>& Requested Date"| P15_2
+    
+    %% --- 15.2 Fetch External Schedule ---
+    P15_2 <-->|"3. Req: Schedule by Dept<br/>4. Res: Base Timetable Payload"| ExtTimetable
+    P15_2 -->|"Alt A1: API Connection Error"| TICDash
+    
+    %% --- 15.3 Fetch Local Slots ---
+    P15_2 -->|"5. Institutional Slots Data"| P15_3
+    P15_3 <-->|"6. Read Local Meeting States<br/>(Read-Only: SR 3)"| D5
+    
+    %% --- 15.4 Merge & Render ---
+    P15_3 -->|"7. Pass Merged Datasets<br/>(Occupied vs Available)"| P15_4
+    P15_4 -->|"Alt A2: No Data for Period Msg"| TICDash
+    P15_4 -->|"8. Render Day/Week-Based<br/>Format (SR 2)"| TICDash
+    P15_4 -.->|"9. Gateway to Schedule Mtg"| P16
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef routeStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class P15_1,P15_2,P15_3,P15_4 processStyle;
+    class D5 storeStyle;
+    class P16 routeStyle;
+    class TIC actorStyle;
+    class ExtTimetable,TICDash extStyle;

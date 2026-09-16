@@ -1,0 +1,71 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 40,
+    "rankSpacing": 90,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        TIC["<b>Teacher-in-Charge</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 12.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["12.0 View Assigned Queries (Sub-Processes)"]
+        direction TB
+        P12_1(("<b>12.1</b><br/>Fetch & Filter<br/>Dept Queue"))
+        P12_2(("<b>12.2</b><br/>Retrieve Specific<br/>Ticket Details"))
+        P12_3(("<b>12.3</b><br/>Parse State &<br/>Render Dashboard"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES & UI SINKS
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores & UI"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        TICDash(["TIC Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 12.1 Fetch Queue ---
+    TIC -->|"1. Open Assigned Queries Section"| P12_1
+    P12_1 <-->|"2. Read Tickets filtered by<br/>Dept/TIC ID (SR 2)"| D3
+    P12_1 -->|"Alt A1: No Assigned Queries Message"| TICDash
+    
+    %% --- 12.2 Retrieve Ticket ---
+    TIC -->|"3. Select Specific Query"| P12_2
+    P12_2 <-->|"4. Read Complete Details &<br/>Student Info (SR 3)"| D3
+    
+    %% --- Error Handling (Alt A3) ---
+    P12_1 & P12_2 -->|"Alt A3: Retrieval Error Message"| TICDash
+    
+    %% --- 12.3 Parse & Render ---
+    P12_1 -->|"5. Pass Ticket Summaries"| P12_3
+    P12_2 -->|"6. Pass Full Ticket Payload"| P12_3
+    P12_3 -->|"7. Apply Logic: Alt A2<br/>(Read-Only if Resolved)"| TICDash
+    P12_3 -->|"8. Render Details & Next Actions"| TICDash
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P12_1,P12_2,P12_3 processStyle;
+    class D3 storeStyle;
+    class TIC actorStyle;
+    class TICDash extStyle;

@@ -1,0 +1,89 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 35,
+    "rankSpacing": 85,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Admin["<b>Admin</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 10.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["10.0 Forward Query to TIC (Sub-Processes)"]
+        direction TB
+        P10_1(("<b>10.1</b><br/>Fetch Details &<br/>AI Suggestion"))
+        P10_2(("<b>10.2</b><br/>Validate TIC<br/>Selection"))
+        P10_3(("<b>10.3</b><br/>Commit Assignment<br/>& Update Status"))
+        P10_4(("<b>10.4</b><br/>Dispatch Routing<br/>Alerts"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D1[("<b>D1: USERS</b><br/>(Auth/Role DB)")]
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D7[("<b>D7: AUDIT_LOGS</b><br/>(System Actions)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtLLM["Gemini API<br/>(AI/RAG Engine)"]
+        ExtEmail["Resend API<br/>(Email Svc)"]
+        TICDash(["TIC Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 10.1 Fetch & Suggest ---
+    Admin -->|"1. Selects Query requiring<br/>TIC Assistance"| P10_1
+    P10_1 <-->|"2. Read Ticket Details"| D3
+    P10_1 <-->|"3. Req: Dept/Category Context<br/>Res: Suggested TIC (SR 3)"| ExtLLM
+    P10_1 -->|"4. Display Query & TIC Suggestion"| Admin
+    
+    %% --- 10.2 Validate TIC ---
+    Admin -->|"5. Identifies / Selects TIC"| P10_2
+    P10_2 <-->|"6. Verify TIC is Active &<br/>Authorized"| D1
+    P10_2 -->|"Alt A1: Invalid TIC Error<br/>(Prompt Re-selection)"| Admin
+    
+    %% --- 10.3 Commit Assignment ---
+    P10_2 -->|"7. Validated Forwarding Details"| P10_3
+    Admin -->|"8. Alt A3: Cancel Forwarding"| P10_3
+    Admin -->|"9. Confirm Assignment"| P10_3
+    P10_3 -->|"10. Update Routing &<br/>Status: 'Forwarded'"| D3
+    P10_3 -->|"Alt A2: Save Failure Error"| Admin
+    P10_3 -->|"11. Log Routing Action"| D7
+    
+    %% --- 10.4 Dispatch Alerts ---
+    P10_3 -->|"12. Forwarding Event"| P10_4
+    P10_4 -->|"13. Make Query Available"| TICDash
+    P10_4 -->|"14. Notify Student & TIC"| ExtEmail
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P10_1,P10_2,P10_3,P10_4 processStyle;
+    class D1,D3,D7 storeStyle;
+    class Admin actorStyle;
+    class ExtLLM,ExtEmail,TICDash extStyle;

@@ -1,0 +1,89 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 35,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Admin["<b>Admin</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 9.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["9.0 Monitor & Resolve Queries (Sub-Processes)"]
+        direction TB
+        P9_1(("<b>9.1</b><br/>Fetch & Render<br/>Query Details"))
+        P9_2(("<b>9.2</b><br/>Validate Admin<br/>Decision"))
+        P9_3(("<b>9.3</b><br/>Commit Resolution<br/>& Update Status"))
+        P9_4(("<b>9.4</b><br/>Notify Student &<br/>Flag for KB"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES & INTERNAL ROUTING
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Stores & Routing"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D7[("<b>D7: AUDIT_LOGS</b><br/>(System Actions)")]
+        P10[["<b>Process 10.0</b><br/>(Forward to TIC)"]]
+        P11[["<b>Process 11.0</b><br/>(Manage KB)"]]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtEmail["Resend API<br/>(Email Svc)"]
+        StudentDash(["Student Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 9.1 Fetch Details ---
+    Admin -->|"1. Select Unresolved Query"| P9_1
+    P9_1 <-->|"2. Read Ticket & Student Info"| D3
+    P9_1 -->|"3. Display Complete Details"| Admin
+    
+    %% --- 9.2 Validate Decision ---
+    Admin -->|"4. Enters Resolution / Decision"| P9_2
+    P9_2 -->|"Alt A1: Update Status (Needs Clarification/Docs)"| D3
+    P9_2 -->|"Alt A1: Clarification Alert"| ExtEmail
+    P9_2 -->|"Alt A2: Route to TIC Workflow"| P10
+    
+    %% --- 9.3 Commit Resolution ---
+    P9_2 -->|"5. Validated Resolution Text"| P9_3
+    P9_3 -->|"6. Write Resolution &<br/>Status: 'Resolved'"| D3
+    P9_3 -->|"7. Log Authority & Timestamp"| D7
+    
+    %% --- 9.4 Notify & Flag ---
+    P9_3 -->|"8. Resolution Event"| P9_4
+    P9_4 -->|"9. Display Final Resolution"| StudentDash
+    P9_4 -->|"10. Dispatch Notification"| ExtEmail
+    P9_4 -->|"11. Forward Verified<br/>Resolution as Candidate"| P11
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef routeStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class P9_1,P9_2,P9_3,P9_4 processStyle;
+    class D3,D7 storeStyle;
+    class P10,P11 routeStyle;
+    class Admin actorStyle;
+    class ExtEmail,StudentDash extStyle;

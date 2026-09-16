@@ -1,0 +1,83 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 30,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Student["<b>Student</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 3.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["3.0 Raise New Query (Sub-Processes)"]
+        direction TB
+        P3_1(("<b>3.1</b><br/>Form Render &<br/>Input Collection"))
+        P3_2(("<b>3.2</b><br/>Validate<br/>Query Data"))
+        P3_3(("<b>3.3</b><br/>Create Ticket<br/>Record"))
+        P3_4(("<b>3.4</b><br/>Update Dashboard<br/>& Notify Admin"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D7[("<b>D7: AUDIT_LOGS</b><br/>(Tracking)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Dashboards"]
+        direction TB
+        AdminDash(["Admin Dashboard<br/>(UI View)"])
+        ExtEmail["Resend API<br/>(Email Svc)"]
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 3.1 Input Collection ---
+    Student -->|"1. Selects 'Raise Query' &<br/>Enters Details"| P3_1
+    P3_1 -->|"Alt A3: Discard Unsaved &<br/>Return to Prev Page"| Student
+    
+    %% --- 3.2 Validation ---
+    P3_1 -->|"2. Submit Query Data"| P3_2
+    P3_2 -->|"Alt A1: Validation Error<br/>(Incomplete/Invalid)"| Student
+    
+    %% --- 3.3 Create Record ---
+    P3_2 -->|"3. Validated Data<br/>(No Duplicates)"| P3_3
+    P3_3 -->|"4. Insert Record<br/>(Status: New)"| D3
+    P3_3 -->|"5. Securely Store<br/>Audit Trail"| D7
+    P3_3 -->|"Alt A2: Submission<br/>Failure Error"| Student
+    P3_3 -->|"6. Clear Confirmation<br/>Message"| Student
+    
+    %% --- 3.4 Notify & Update ---
+    P3_3 -->|"7. Ticket Created<br/>Event"| P3_4
+    P3_4 -->|"8. Make Available for<br/>Further Processing"| AdminDash
+    P3_4 -->|"9. Notify Administrator<br/>of New Query"| ExtEmail
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P3_1,P3_2,P3_3,P3_4 processStyle;
+    class D3,D7 storeStyle;
+    class Student actorStyle;
+    class ExtEmail,AdminDash extStyle;

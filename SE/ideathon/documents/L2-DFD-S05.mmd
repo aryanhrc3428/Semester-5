@@ -1,0 +1,90 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 30,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Student["<b>Student</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 5.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["5.0 Upload Requested Documents (Sub-Processes)"]
+        direction TB
+        P5_1(("<b>5.1</b><br/>Fetch & Render<br/>Doc Request UI"))
+        P5_2(("<b>5.2</b><br/>Validate File<br/>Selection"))
+        P5_3(("<b>5.3</b><br/>Stream Binary<br/>to Cloud"))
+        P5_4(("<b>5.4</b><br/>Save Metadata &<br/>Update Status"))
+        P5_5(("<b>5.5</b><br/>Confirm &<br/>Dispatch Alerts"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D4[("<b>D4: DOCUMENTS</b><br/>(File Metadata)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services"]
+        direction TB
+        ExtS3["AWS S3 Bucket<br/>(Secure Storage)"]
+        ExtEmail["Resend API<br/>(Email Svc)"]
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 5.1 Fetch UI ---
+    Student -->|"1. Open Query w/ Request"| P5_1
+    P5_1 <-->|"2. Read Doc Requirements"| D3
+    P5_1 -->|"3. Display Required Docs UI"| Student
+    
+    %% --- 5.2 Validate ---
+    Student -->|"4. Select Files & Submit"| P5_2
+    P5_2 -->|"Alt A1: Invalid File Error<br/>Alt A2: Missing Doc Error"| Student
+    
+    %% --- 5.3 Upload Binary ---
+    P5_2 -->|"5. Validated File Stream"| P5_3
+    P5_3 -->|"6. Securely Upload Binary"| ExtS3
+    ExtS3 -->|"Alt A3: Upload Failure Error"| P5_3
+    P5_3 -->|"Alt A3: Prompt Retry"| Student
+    ExtS3 -->|"7. Return S3 Storage Key"| P5_3
+    
+    %% --- 5.4 Update Database ---
+    P5_3 -->|"8. S3 Key & Payload"| P5_4
+    P5_4 -->|"9. Insert Metadata Record<br/>(Link to Query)"| D4
+    P5_4 -->|"10. Update Status:<br/>'Documents Submitted'"| D3
+    
+    %% --- 5.5 Confirm & Notify ---
+    P5_4 -->|"11. Upload Success Event"| P5_5
+    P5_5 -->|"12. Display Confirmation"| Student
+    P5_5 -->|"13. Notify Assigned<br/>Admin / TIC"| ExtEmail
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P5_1,P5_2,P5_3,P5_4,P5_5 processStyle;
+    class D3,D4 storeStyle;
+    class Student actorStyle;
+    class ExtS3,ExtEmail extStyle;

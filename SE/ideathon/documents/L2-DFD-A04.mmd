@@ -1,0 +1,85 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 35,
+    "rankSpacing": 80,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% COLUMN 1: ACTORS
+    %% -------------------------------------------------------------
+    subgraph Actors ["1. Primary Stakeholders"]
+        direction TB
+        Admin["<b>Admin</b>"]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 2: SUB-PROCESSES (Decomposition of 11.0)
+    %% -------------------------------------------------------------
+    subgraph SubProcesses ["11.0 Manage & Maintain KB (Sub-Processes)"]
+        direction TB
+        P11_1(("<b>11.1</b><br/>Select Operation<br/>& Input Data"))
+        P11_2(("<b>11.2</b><br/>Validate &<br/>Confirm Data"))
+        P11_3(("<b>11.3</b><br/>Generate Vector<br/>Embeddings"))
+        P11_4(("<b>11.4</b><br/>Commit to KB<br/>& Update Status"))
+        P11_5(("<b>11.5</b><br/>Render<br/>Confirmation"))
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 3: DATA STORES
+    %% -------------------------------------------------------------
+    subgraph DataStores ["3. System Data Stores"]
+        direction TB
+        D2[("<b>D2: KNOWLEDGE</b><br/>(pgvector DB)")]
+        D7[("<b>D7: AUDIT_LOGS</b><br/>(System Actions)")]
+    end
+
+    %% -------------------------------------------------------------
+    %% COLUMN 4: EXTERNAL SERVICES & SINKS
+    %% -------------------------------------------------------------
+    subgraph ExtServices ["4. External Services & Sinks"]
+        direction TB
+        ExtLLM["Gemini API<br/>(Embeddings)"]
+        AdminDash(["Admin Dashboard<br/>(UI View)"])
+    end
+
+    %% =============================================================
+    %% DATA FLOWS
+    %% =============================================================
+
+    %% --- 11.1 Input Data ---
+    Admin -->|"1. Selects Add/Update/Deactivate<br/>& Enters Info"| P11_1
+    P11_1 -->|"2. Raw Operation Data"| P11_2
+    
+    %% --- 11.2 Validate ---
+    P11_2 -->|"Alt: Validation Error"| Admin
+    Admin -->|"3. Confirms Operation"| P11_2
+    P11_2 -->|"4. Validated Info &<br/>Operation Type"| P11_3
+    
+    %% --- 11.3 Embeddings (For Add/Update) ---
+    P11_3 <-->|"5. Req: Text Chunk<br/>6. Res: Vector Embedding"| ExtLLM
+    
+    %% --- 11.4 Commit to DB ---
+    P11_3 -->|"7. Processed Payload<br/>(Text + Vector + State)"| P11_4
+    P11_4 -->|"8. Insert/Update Record &<br/>Mark Active/Inactive"| D2
+    P11_4 -->|"9. Log Modification Event"| D7
+    
+    %% --- 11.5 Confirm ---
+    P11_4 -->|"10. Success Event"| P11_5
+    P11_5 -->|"11. Display Confirmation"| AdminDash
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+
+    class P11_1,P11_2,P11_3,P11_4,P11_5 processStyle;
+    class D2,D7 storeStyle;
+    class Admin actorStyle;
+    class ExtLLM,AdminDash extStyle;
