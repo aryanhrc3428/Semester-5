@@ -1,8 +1,9 @@
 %%{init: {
   "flowchart": {
     "htmlLabels": true,
+    "defaultRenderer": "elk",
     "nodeSpacing": 40,
-    "rankSpacing": 100,
+    "rankSpacing": 120,
     "padding": 20
   }
 }}%%
@@ -19,25 +20,40 @@ flowchart LR
     end
 
     %% -------------------------------------------------------------
-    %% COLUMN 2: PROCESSES (Auto-sorted by Mermaid to minimize crossings)
+    %% COLUMN 2: PROCESSES (Grouped by Actor to minimize crossings)
     %% -------------------------------------------------------------
-    subgraph Processes ["2. Core Processes (16 Use Cases)"]
-        P1(("<b>1.0</b><br/>Login / Auth"))
-        P2(("<b>2.0</b><br/>Ask AI Query"))
-        P3(("<b>3.0</b><br/>Raise New Query"))
-        P4(("<b>4.0</b><br/>Track Status"))
-        P5(("<b>5.0</b><br/>Upload Docs"))
-        P6(("<b>6.0</b><br/>View/Book Mtgs"))
-        P7(("<b>7.0</b><br/>Receive Alerts"))
-        P8(("<b>8.0</b><br/>View New Queries"))
-        P9(("<b>9.0</b><br/>Resolve Directly"))
-        P10(("<b>10.0</b><br/>Forward Query"))
-        P11(("<b>11.0</b><br/>Manage KB"))
-        P12(("<b>12.0</b><br/>View Assigned"))
-        P13(("<b>13.0</b><br/>Resolve Dept Q's"))
-        P14(("<b>14.0</b><br/>Request/Review Docs"))
-        P15(("<b>15.0</b><br/>View Timetable"))
-        P16(("<b>16.0</b><br/>Schedule/Cancel"))
+    subgraph Processes ["2. Core Processes"]
+        
+        subgraph SP ["Student Actions"]
+            direction TB
+            P1(("<b>1.0</b><br/>Login / Auth"))
+            P2(("<b>2.0</b><br/>Ask AI Query"))
+            P3(("<b>3.0</b><br/>Raise New Query"))
+            P4(("<b>4.0</b><br/>Track Status"))
+            P5(("<b>5.0</b><br/>Upload Docs"))
+            P6(("<b>6.0</b><br/>View/Book Mtgs"))
+        end
+
+        subgraph AP ["Admin Actions"]
+            direction TB
+            P8(("<b>8.0</b><br/>View New Queries"))
+            P9(("<b>9.0</b><br/>Resolve Directly"))
+            P10(("<b>10.0</b><br/>Forward Query"))
+            P11(("<b>11.0</b><br/>Manage KB"))
+        end
+
+        subgraph TP ["TIC Actions"]
+            direction TB
+            P12(("<b>12.0</b><br/>View Assigned"))
+            P13(("<b>13.0</b><br/>Resolve Dept Q's"))
+            P14(("<b>14.0</b><br/>Request/Review Docs"))
+            P15(("<b>15.0</b><br/>View Timetable"))
+            P16(("<b>16.0</b><br/>Schedule/Cancel"))
+        end
+
+        subgraph SysP ["System Actions"]
+            P7(("<b>7.0</b><br/>Receive Alerts"))
+        end
     end
 
     %% -------------------------------------------------------------
@@ -68,7 +84,7 @@ flowchart LR
     end
 
     %% =============================================================
-    %% STRICT LEFT-TO-RIGHT DATA FLOWS (No backward arrows)
+    %% STRICT LEFT-TO-RIGHT DATA FLOWS
     %% =============================================================
 
     %% --- ACTOR TO PROCESS FLOWS ---
