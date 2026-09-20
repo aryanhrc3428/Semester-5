@@ -1,0 +1,78 @@
+%%{init: {
+  "flowchart": {
+    "htmlLabels": true,
+    "nodeSpacing": 30,
+    "rankSpacing": 60,
+    "padding": 15
+  }
+}}%%
+flowchart LR
+
+    %% -------------------------------------------------------------
+    %% STYLING
+    %% -------------------------------------------------------------
+    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef human fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef db fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef ext fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef dec fill:#eceff1,stroke:#546e7a,stroke-width:2px;
+
+    %% -------------------------------------------------------------
+    %% PHASE 1: AI RAG RESOLUTION (MATH FLOW)
+    %% -------------------------------------------------------------
+    subgraph Phase1 ["1. AI / RAG Resolution"]
+        direction TB
+        A(["<b>Student Submits Query</b>"]) --> B["<b>Gemini API Embedding</b><br/><i>Eq = f(Student Query)</i>"]
+        B --> C["<b>pgvector Search (D2: KNOWLEDGE)</b><br/><i>Similarity(q,d) = (q·d) / (||q|| ||d||)</i>"]
+        C --> D["<b>Evaluate System Metric</b><br/><i>Conf = f(Similarity, Relevance, Source Validity)</i>"]
+        D --> E{"Confidence > T ?"}
+        E -->|"Yes: Grounded Answer"| F["<b>Serve AI Answer</b><br/>(Instant Resolution)"]
+    end
+
+    %% -------------------------------------------------------------
+    %% PHASE 2: ESCALATION & ROUTING LOGIC
+    %% -------------------------------------------------------------
+    subgraph Phase2 ["2. Escalation & Routing"]
+        direction TB
+        E -->|"No: Escalate (Conf < T)"| G["<b>Create DB Ticket</b><br/>D3: QUERIES (Status: Open)"]
+        G --> H["<b>Admin Queue</b><br/>Staff Reviews Query"]
+        H --> I{"Admin Routing<br/>Decision"}
+        I -->|"Resolve Directly"| J["Admin Drafts Solution"]
+        I -->|"Forward to Dept"| K["<b>Gemini API Suggests TIC</b><br/><i>Assigned TIC = Routing(Query, Dept, Subject)</i>"]
+        K --> L["TIC Drafts Solution"]
+    end
+
+    %% -------------------------------------------------------------
+    %% PHASE 3: VALIDATION & DOCUMENT LOOP
+    %% -------------------------------------------------------------
+    subgraph Phase3 ["3. Document Handling Loop"]
+        direction TB
+        J & L --> M{"Additional Docs<br/>Required?"}
+        M -->|"Yes"| N["Update Status:<br/>'Documents Required'"]
+        N --> O["<b>Student Uploads File (AWS S3)</b><br/><i>Valid = FileType_valid AND (FileSize &lt; MaxSize)</i>"]
+        O --> P["Write File Metadata to<br/>D4: DOCUMENTS"]
+        P --> Q["Staff Reviews & Accepts<br/>Submitted Document"]
+        M -->|"No"| R
+        Q --> R["Finalize Verified<br/>Resolution Text"]
+    end
+
+    %% -------------------------------------------------------------
+    %% PHASE 4: RESOLUTION & EMBEDDING GENERATION
+    %% -------------------------------------------------------------
+    subgraph Phase4 ["4. Resolution & KB Feedback"]
+        direction TB
+        R --> S["<b>Commit Resolution</b><br/>Update D3 Status: 'Resolved'"]
+        S --> T["<b>Audit Trail</b><br/>Log Action in D7: AUDIT_LOGS"]
+        T --> U["<b>Resend API</b><br/>Dispatch Student Alert"]
+        
+        %% KB Update Loop
+        U --> V["Flag Verified Resolution<br/>as KB Candidate"]
+        V --> W["<b>Admin Approves Entry</b><br/><i>E_kb = f(KB Content)</i>"]
+        W --> X[("<b>D2: KNOWLEDGE</b><br/>Store Text + Vector Together")]
+    end
+
+    %% Apply Classes
+    class B,K,O,U,W ext;
+    class C,G,P,S,T,X db;
+    class D,E,I,M dec;
+    class A,F,H,J,L,N,Q,R,V human;
