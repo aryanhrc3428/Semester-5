@@ -13,7 +13,7 @@ flowchart LR
     %% -------------------------------------------------------------
     subgraph Triggers [" "]
         direction TB
-        SysEvents[["<b>System Events</b><br/>(from Core Processes)"]]
+        SysEvents(("<b>System Events</b><br/>(from Core Processes)"))
         Student["<b>Student / User</b>"]
     end
 
@@ -43,7 +43,7 @@ flowchart LR
     subgraph ExtServices [" "]
         direction TB
         ExtEmail["Resend API<br/>(Email Svc)"]
-        UserDashboard(["User Dashboard<br/>(UI View)"])
+        UserDashboard(("User Dashboard<br/>(UI View)"))
     end
 
     %% =============================================================
@@ -72,19 +72,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef triggerStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5
-
-    class P7_1,P7_2,P7_3,P7_4 processStyle;
-    class D1,D6 storeStyle;
-    class Student actorStyle;
-    class SysEvents triggerStyle;
-    class ExtEmail,UserDashboard extStyle;
-
-    style Triggers fill:none,stroke:#333,stroke-width:1px
-    style SubProcesses fill:none,stroke:#333,stroke-width:1px
-    style DataStores fill:none,stroke:#333,stroke-width:1px
-    style ExtServices fill:none,stroke:#333,stroke-width:1px
+    style Triggers fill:none, stroke:none
+    style DataStores fill:none, stroke:none
+    style SubProcesses fill:none, stroke:none
+    style ExtServices fill:none, stroke:none

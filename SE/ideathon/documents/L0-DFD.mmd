@@ -50,14 +50,3 @@ flowchart LR
     ExtLLM -->|"Generated Answer"| SystemCore
     ExtS3 -->|"Document URL"| SystemCore
     ExtTimetable -->|"Global Availability Data"| SystemCore
-
-    %% -------------------------------------------------------------
-    %% STYLING
-    %% -------------------------------------------------------------
-    classDef coreStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:3px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-
-    class SystemCore coreStyle;
-    class Student,Admin,TIC actorStyle;
-    class ExtAuth,ExtLLM,ExtS3,ExtTimetable,ExtEmail extStyle;

@@ -34,8 +34,8 @@ flowchart LR
         direction TB
         D3@{ shape: datastore, label: "<b>D3: QUERIES</b><br/>(Tickets DB)" }
         D7@{ shape: datastore, label: "<b>D7: AUDIT_LOGS</b><br/>(System Actions)" }
-        P10[["<b>Process 10.0</b><br/>(Forward to TIC)"]]
-        P11[["<b>Process 11.0</b><br/>(Manage KB)"]]
+        P10(("<b>Process 10.0</b><br/>(Forward to TIC)"))
+        P11(("<b>Process 11.0</b><br/>(Manage KB)"))
     end
 
     %% -------------------------------------------------------------
@@ -44,7 +44,7 @@ flowchart LR
     subgraph ExtServices [" "]
         direction TB
         ExtEmail["Resend API<br/>(Email Svc)"]
-        StudentDash(["Student Dashboard<br/>(UI View)"])
+        StudentDash(("Student Dashboard<br/>(UI View)"))
     end
 
     %% =============================================================
@@ -76,19 +76,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000;
-    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000;
-    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000;
-    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000;
-    classDef routeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5;
-
-    class P9_1,P9_2,P9_3,P9_4 processStyle;
-    class D3,D7 storeStyle;
-    class P10,P11 routeStyle;
-    class Admin actorStyle;
-    class ExtEmail,StudentDash extStyle;
-
-    style Actors fill:none,stroke:#333,stroke-width:1px
-    style SubProcesses fill:none,stroke:#333,stroke-width:1px
-    style DataStores fill:none,stroke:#333,stroke-width:1px
-    style ExtServices fill:none,stroke:#333,stroke-width:1px
+    style Actors fill:none, stroke:none
+    style DataStores fill:none, stroke:none
+    style SubProcesses fill:none, stroke:none
+    style ExtServices fill:none, stroke:none

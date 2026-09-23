@@ -33,7 +33,7 @@ flowchart LR
     subgraph DataStores [" "]
         direction TB
         D5@{ shape: datastore, label: "<b>D5: MEETINGS</b><br/>(Bookings DB)" }
-        P16[["<b>Process 16.0</b><br/>(Schedule/Cancel Meetings)"]]
+        P16(("<b>Process 16.0</b><br/>(Schedule/Cancel Meetings)"))
     end
 
     %% -------------------------------------------------------------
@@ -42,7 +42,7 @@ flowchart LR
     subgraph ExtServices [" "]
         direction TB
         ExtTimetable["Institutional<br/>Timetable Svc"]
-        TICDash(["TIC Dashboard<br/>(UI View)"])
+        TICDash(("TIC Dashboard<br/>(UI View)"))
     end
 
     %% =============================================================
@@ -70,19 +70,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef routeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5
-
-    class P15_1,P15_2,P15_3,P15_4 processStyle;
-    class D5 storeStyle;
-    class P16 routeStyle;
-    class TIC actorStyle;
-    class ExtTimetable,TICDash extStyle;
-
-    style Actors fill:none,stroke:#333,stroke-width:1px
-    style SubProcesses fill:none,stroke:#333,stroke-width:1px
-    style DataStores fill:none,stroke:#333,stroke-width:1px
-    style ExtServices fill:none,stroke:#333,stroke-width:1px
+    style Actors fill:none, stroke:none
+    style DataStores fill:none, stroke:none
+    style SubProcesses fill:none, stroke:none
+    style ExtServices fill:none, stroke:none

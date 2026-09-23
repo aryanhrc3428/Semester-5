@@ -44,7 +44,7 @@ flowchart LR
         direction TB
         ExtLLM["Gemini API<br/>(AI/RAG Engine)"]
         ExtEmail["Resend API<br/>(Email Svc)"]
-        TICDash(["TIC Dashboard<br/>(UI View)"])
+        TICDash(("TIC Dashboard<br/>(UI View)"))
     end
 
     %% =============================================================
@@ -78,17 +78,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-
-    class P10_1,P10_2,P10_3,P10_4 processStyle;
-    class D1,D3,D7 storeStyle;
-    class Admin actorStyle;
-    class ExtLLM,ExtEmail,TICDash extStyle;
-
-    style Actors fill:none,stroke:#333,stroke-width:1px
-    style SubProcesses fill:none,stroke:#333,stroke-width:1px
-    style DataStores fill:none,stroke:#333,stroke-width:1px
-    style ExtServices fill:none,stroke:#333,stroke-width:1px
+    style Actors fill:none, stroke:none
+    style DataStores fill:none, stroke:none
+    style SubProcesses fill:none, stroke:none
+    style ExtServices fill:none, stroke:none

@@ -42,7 +42,7 @@ flowchart LR
     subgraph ExtServices [" "]
         direction TB
         ExtTimetable["Institutional<br/>Timetable Svc"]
-        TICDash(["TIC Dashboard<br/>(UI View)"])
+        TICDash(("TIC Dashboard<br/>(UI View)"))
         ExtEmail["Resend API<br/>(Email Svc)"]
     end
 
@@ -78,17 +78,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
-
-    class P6_1,P6_2,P6_3,P6_4 processStyle;
-    class D3,D5 storeStyle;
-    class Student actorStyle;
-    class ExtTimetable,ExtEmail,TICDash extStyle;
-
-    style Actors fill:none,stroke:#333,stroke-width:1px
-    style SubProcesses fill:none,stroke:#333,stroke-width:1px
-    style DataStores fill:none,stroke:#333,stroke-width:1px
-    style ExtServices fill:none,stroke:#333,stroke-width:1px
+    style Actors fill:none, stroke:none
+    style DataStores fill:none, stroke:none
+    style SubProcesses fill:none, stroke:none
+    style ExtServices fill:none, stroke:none
