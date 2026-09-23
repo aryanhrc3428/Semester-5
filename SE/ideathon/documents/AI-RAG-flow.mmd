@@ -11,16 +11,16 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef human fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef db fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef ext fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef dec fill:#eceff1,stroke:#546e7a,stroke-width:2px;
+    classDef process fill:#fff,stroke:#333,stroke-width:1px,color:#000;
+    classDef human fill:#fff,stroke:#333,stroke-width:1px,color:#000;
+    classDef db fill:#fff,stroke:#333,stroke-width:1px,color:#000;
+    classDef ext fill:#fff,stroke:#333,stroke-width:1px,color:#000;
+    classDef dec fill:#fff,stroke:#333,stroke-width:1px,color:#000;
 
     %% -------------------------------------------------------------
     %% PHASE 1: AI RAG RESOLUTION (MATH FLOW)
     %% -------------------------------------------------------------
-    subgraph Phase1 ["1. AI / RAG Resolution"]
+    subgraph Phase1 [" "]
         direction TB
         A(["<b>Student Submits Query</b>"]) --> B["<b>Gemini API Embedding</b><br/><i>Eq = f(Student Query)</i>"]
         B --> C["<b>pgvector Search (D2: KNOWLEDGE)</b><br/><i>Similarity(q,d) = (q·d) / (||q|| ||d||)</i>"]
@@ -32,7 +32,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% PHASE 2: ESCALATION & ROUTING LOGIC
     %% -------------------------------------------------------------
-    subgraph Phase2 ["2. Escalation & Routing"]
+    subgraph Phase2 [" "]
         direction TB
         E -->|"No: Escalate (Conf < T)"| G["<b>Create DB Ticket</b><br/>D3: QUERIES (Status: Open)"]
         G --> H["<b>Admin Queue</b><br/>Staff Reviews Query"]
@@ -45,7 +45,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% PHASE 3: VALIDATION & DOCUMENT LOOP
     %% -------------------------------------------------------------
-    subgraph Phase3 ["3. Document Handling Loop"]
+    subgraph Phase3 [" "]
         direction TB
         J & L --> M{"Additional Docs<br/>Required?"}
         M -->|"Yes"| N["Update Status:<br/>'Documents Required'"]
@@ -59,7 +59,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% PHASE 4: RESOLUTION & EMBEDDING GENERATION
     %% -------------------------------------------------------------
-    subgraph Phase4 ["4. Resolution & KB Feedback"]
+    subgraph Phase4 [" "]
         direction TB
         R --> S["<b>Commit Resolution</b><br/>Update D3 Status: 'Resolved'"]
         S --> T["<b>Audit Trail</b><br/>Log Action in D7: AUDIT_LOGS"]
@@ -68,7 +68,7 @@ flowchart LR
         %% KB Update Loop
         U --> V["Flag Verified Resolution<br/>as KB Candidate"]
         V --> W["<b>Admin Approves Entry</b><br/><i>E_kb = f(KB Content)</i>"]
-        W --> X[("<b>D2: KNOWLEDGE</b><br/>Store Text + Vector Together")]
+        W --> X@{ shape: datastore, label: "<b>D2: KNOWLEDGE</b><br/>Store Text + Vector Together" }
     end
 
     %% Apply Classes
@@ -76,3 +76,8 @@ flowchart LR
     class C,G,P,S,T,X db;
     class D,E,I,M dec;
     class A,F,H,J,L,N,Q,R,V human;
+
+    style Phase1 fill:none,stroke:#333,stroke-width:1px
+    style Phase2 fill:none,stroke:#333,stroke-width:1px
+    style Phase3 fill:none,stroke:#333,stroke-width:1px
+    style Phase4 fill:none,stroke:#333,stroke-width:1px

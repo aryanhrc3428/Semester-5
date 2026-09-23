@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: ACTORS
     %% -------------------------------------------------------------
-    subgraph Actors ["1. Primary Stakeholders"]
+    subgraph Actors [" "]
         direction TB
         TIC["<b>Teacher-in-Charge</b>"]
     end
@@ -19,28 +19,28 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 14.0 - Request)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["14.0a Request Documents (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
         P14_1(("<b>14.1</b><br/>Render<br/>Request Form"))
         P14_2(("<b>14.2</b><br/>Validate<br/>Document Request"))
-        P14_3(("<b>14.3</b><br/>Commit Request<br/>& Update Status"))
+        P14_3(("<b>14.3</b><br/>Commit Request<br/>&amp; Update Status"))
         P14_4(("<b>14.4</b><br/>Dispatch Student<br/>Notification"))
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES & INTERNAL ROUTING
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Stores & Routing"]
+    subgraph DataStores [" "]
         direction TB
-        D4[("<b>D4: DOCUMENTS</b><br/>(File Metadata)")]
-        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D4@{ shape: datastore, label: "<b>D4: DOCUMENTS</b><br/>(File Metadata)" }
+        D3@{ shape: datastore, label: "<b>D3: QUERIES</b><br/>(Tickets DB)" }
         P5[["<b>Process 5.0</b><br/>(Student Upload)"]]
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
     %% -------------------------------------------------------------
-    subgraph ExtServices ["4. External Services & Sinks"]
+    subgraph ExtServices [" "]
         direction TB
         ExtEmail["Resend API<br/>(Email Svc)"]
     end
@@ -72,14 +72,19 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef routeStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef routeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
     class P14_1,P14_2,P14_3,P14_4 processStyle;
     class D3,D4 storeStyle;
     class P5 routeStyle;
     class TIC actorStyle;
     class ExtEmail extStyle;
+
+    style Actors fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
+    style ExtServices fill:none,stroke:#333,stroke-width:1px

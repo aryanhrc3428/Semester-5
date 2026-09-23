@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: ACTORS
     %% -------------------------------------------------------------
-    subgraph Actors ["1. Primary Stakeholders"]
+    subgraph Actors [" "]
         direction TB
         Student["<b>Student</b>"]
     end
@@ -19,7 +19,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 3.0)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["3.0 Raise New Query (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
         P3_1(("<b>3.1</b><br/>Form Render &<br/>Input Collection"))
         P3_2(("<b>3.2</b><br/>Validate<br/>Query Data"))
@@ -30,16 +30,16 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Data Stores"]
+    subgraph DataStores [" "]
         direction TB
-        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
-        D7[("<b>D7: AUDIT_LOGS</b><br/>(Tracking)")]
+        D3@{ shape: datastore, label: "<b>D3: QUERIES</b><br/>(Tickets DB)" }
+        D7@{ shape: datastore, label: "<b>D7: AUDIT_LOGS</b><br/>(Tracking)" }
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 4: EXTERNAL SERVICES & SINKS
     %% -------------------------------------------------------------
-    subgraph ExtServices ["4. External Services & Dashboards"]
+    subgraph ExtServices [" "]
         direction TB
         AdminDash(["Admin Dashboard<br/>(UI View)"])
         ExtEmail["Resend API<br/>(Email Svc)"]
@@ -72,12 +72,17 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
 
     class P3_1,P3_2,P3_3,P3_4 processStyle;
     class D3,D7 storeStyle;
     class Student actorStyle;
     class ExtEmail,AdminDash extStyle;
+
+    style Actors fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
+    style ExtServices fill:none,stroke:#333,stroke-width:1px

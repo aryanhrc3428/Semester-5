@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: ACTORS
     %% -------------------------------------------------------------
-    subgraph Actors ["1. Primary Stakeholders"]
+    subgraph Actors [" "]
         direction TB
         TIC["<b>Teacher-in-Charge</b>"]
     end
@@ -19,7 +19,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 15.0)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["15.0 View Timetable (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
         P15_1(("<b>15.1</b><br/>Parse Context &<br/>Request Period"))
         P15_2(("<b>15.2</b><br/>Fetch Institutional<br/>Schedule"))
@@ -30,16 +30,16 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES & ROUTING
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Stores & Routing"]
+    subgraph DataStores [" "]
         direction TB
-        D5[("<b>D5: MEETINGS</b><br/>(Bookings DB)")]
+        D5@{ shape: datastore, label: "<b>D5: MEETINGS</b><br/>(Bookings DB)" }
         P16[["<b>Process 16.0</b><br/>(Schedule/Cancel Meetings)"]]
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 4: EXTERNAL SERVICES & UI SINKS
     %% -------------------------------------------------------------
-    subgraph ExtServices ["4. External Services & Sinks"]
+    subgraph ExtServices [" "]
         direction TB
         ExtTimetable["Institutional<br/>Timetable Svc"]
         TICDash(["TIC Dashboard<br/>(UI View)"])
@@ -70,14 +70,19 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef routeStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef routeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
     class P15_1,P15_2,P15_3,P15_4 processStyle;
     class D5 storeStyle;
     class P16 routeStyle;
     class TIC actorStyle;
     class ExtTimetable,TICDash extStyle;
+
+    style Actors fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
+    style ExtServices fill:none,stroke:#333,stroke-width:1px

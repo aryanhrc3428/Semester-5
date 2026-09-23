@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: TRIGGERS & ACTORS
     %% -------------------------------------------------------------
-    subgraph Triggers ["1. Triggers & Stakeholders"]
+    subgraph Triggers [" "]
         direction TB
         SysEvents[["<b>System Events</b><br/>(from Core Processes)"]]
         Student["<b>Student / User</b>"]
@@ -20,27 +20,27 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 7.0)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["7.0 Receive Notifications (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
-        P7_1(("<b>7.1</b><br/>Identify Event<br/>& Recipient"))
-        P7_2(("<b>7.2</b><br/>Generate Payload<br/>(Email & In-App)"))
-        P7_3(("<b>7.3</b><br/>Dispatch Email<br/>& Log Status"))
+        P7_1(("<b>7.1</b><br/>Identify Event<br/>&amp; Recipient"))
+        P7_2(("<b>7.2</b><br/>Generate Payload<br/>(Email &amp; In-App)"))
+        P7_3(("<b>7.3</b><br/>Dispatch Email<br/>&amp; Log Status"))
         P7_4(("<b>7.4</b><br/>Render In-App<br/>Notification"))
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Data Stores"]
+    subgraph DataStores [" "]
         direction TB
-        D1[("<b>D1: USERS</b><br/>(Auth DB)")]
-        D6[("<b>D6: NOTIFICATIONS</b><br/>(History & Status)")]
+        D1@{ shape: datastore, label: "<b>D1: USERS</b><br/>(Auth DB)" }
+        D6@{ shape: datastore, label: "<b>D6: NOTIFICATIONS</b><br/>(History & Status)" }
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 4: EXTERNAL SERVICES & SINKS
     %% -------------------------------------------------------------
-    subgraph ExtServices ["4. External Services & Sinks"]
+    subgraph ExtServices [" "]
         direction TB
         ExtEmail["Resend API<br/>(Email Svc)"]
         UserDashboard(["User Dashboard<br/>(UI View)"])
@@ -72,14 +72,19 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef triggerStyle fill:#eceff1,stroke:#546e7a,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef triggerStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000,stroke-dasharray: 5 5
 
     class P7_1,P7_2,P7_3,P7_4 processStyle;
     class D1,D6 storeStyle;
     class Student actorStyle;
     class SysEvents triggerStyle;
     class ExtEmail,UserDashboard extStyle;
+
+    style Triggers fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
+    style ExtServices fill:none,stroke:#333,stroke-width:1px

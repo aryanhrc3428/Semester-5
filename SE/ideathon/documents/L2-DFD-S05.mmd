@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: ACTORS
     %% -------------------------------------------------------------
-    subgraph Actors ["1. Primary Stakeholders"]
+    subgraph Actors [" "]
         direction TB
         Student["<b>Student</b>"]
     end
@@ -19,28 +19,28 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 5.0)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["5.0 Upload Requested Documents (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
-        P5_1(("<b>5.1</b><br/>Fetch & Render<br/>Doc Request UI"))
+        P5_1(("<b>5.1</b><br/>Fetch &amp; Render<br/>Doc Request UI"))
         P5_2(("<b>5.2</b><br/>Validate File<br/>Selection"))
         P5_3(("<b>5.3</b><br/>Stream Binary<br/>to Cloud"))
-        P5_4(("<b>5.4</b><br/>Save Metadata &<br/>Update Status"))
-        P5_5(("<b>5.5</b><br/>Confirm &<br/>Dispatch Alerts"))
+        P5_4(("<b>5.4</b><br/>Save Metadata &amp;<br/>Update Status"))
+        P5_5(("<b>5.5</b><br/>Confirm &amp;<br/>Dispatch Alerts"))
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Data Stores"]
+    subgraph DataStores [" "]
         direction TB
-        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
-        D4[("<b>D4: DOCUMENTS</b><br/>(File Metadata)")]
+        D3@{ shape: datastore, label: "<b>D3: QUERIES</b><br/>(Tickets DB)" }
+        D4@{ shape: datastore, label: "<b>D4: DOCUMENTS</b><br/>(File Metadata)" }
     end
 
     %% -------------------------------------------------------------
     %% COLUMN 4: EXTERNAL SERVICES
     %% -------------------------------------------------------------
-    subgraph ExtServices ["4. External Services"]
+    subgraph ExtServices [" "]
         direction TB
         ExtS3["AWS S3 Bucket<br/>(Secure Storage)"]
         ExtEmail["Resend API<br/>(Email Svc)"]
@@ -79,12 +79,17 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
 
     class P5_1,P5_2,P5_3,P5_4,P5_5 processStyle;
     class D3,D4 storeStyle;
     class Student actorStyle;
     class ExtS3,ExtEmail extStyle;
+
+    style Actors fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
+    style ExtServices fill:none,stroke:#333,stroke-width:1px

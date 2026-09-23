@@ -11,7 +11,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 1: ACTORS
     %% -------------------------------------------------------------
-    subgraph Actors ["1. Primary Stakeholders"]
+    subgraph Actors [" "]
         direction TB
         Student["<b>Student</b>"]
     end
@@ -19,7 +19,7 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 2: SUB-PROCESSES (Decomposition of 4.0)
     %% -------------------------------------------------------------
-    subgraph SubProcesses ["4.0 Track Query Status (Sub-Processes)"]
+    subgraph SubProcesses [" "]
         direction TB
         P4_1(("<b>4.1</b><br/>Fetch & Filter<br/>Query List"))
         P4_2(("<b>4.2</b><br/>Retrieve Specific<br/>Ticket Details"))
@@ -30,9 +30,9 @@ flowchart LR
     %% -------------------------------------------------------------
     %% COLUMN 3: DATA STORES & UI SINKS
     %% -------------------------------------------------------------
-    subgraph DataStores ["3. System Data Stores & UI"]
+    subgraph DataStores [" "]
         direction TB
-        D3[("<b>D3: QUERIES</b><br/>(Tickets DB)")]
+        D3@{ shape: datastore, label: "<b>D3: QUERIES</b><br/>(Tickets DB)" }
         StudentDash(["Student Dashboard<br/>(UI View)"])
     end
 
@@ -60,12 +60,16 @@ flowchart LR
     %% -------------------------------------------------------------
     %% STYLING
     %% -------------------------------------------------------------
-    classDef processStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef storeStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef actorStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef extStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef processStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef storeStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef actorStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
+    classDef extStyle fill:#fff,stroke:#333,stroke-width:1px,color:#000
 
     class P4_1,P4_2,P4_3,P4_4 processStyle;
     class D3 storeStyle;
     class Student actorStyle;
     class StudentDash extStyle;
+
+    style Actors fill:none,stroke:#333,stroke-width:1px
+    style SubProcesses fill:none,stroke:#333,stroke-width:1px
+    style DataStores fill:none,stroke:#333,stroke-width:1px
