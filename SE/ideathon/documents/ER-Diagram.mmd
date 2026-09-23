@@ -1,0 +1,162 @@
+---
+config:
+  theme: default
+---
+erDiagram
+	direction LR
+	ROLE {
+		int role_id PK ""  
+		string role_name  "Student | Admin | TIC"  
+		string description  ""  
+		string permissions_json  ""  
+	}
+
+	DEPARTMENT {
+		int department_id PK ""  
+		string department_name  ""  
+		string department_code  ""  
+		string hod_name  ""  
+	}
+
+	USER {
+		int user_id PK ""  
+		int role_id FK ""  
+		int department_id FK "nullable - null for cross-dept admins"  
+		string full_name  ""  
+		string email  ""  
+		string college_id_number  ""  
+		string academic_year  "nullable - students only"  
+		boolean is_active  ""  
+		datetime created_at  ""  
+		datetime last_login_at  ""  
+	}
+
+	QUERY {
+		int query_id PK ""  
+		int student_id FK ""  
+		int department_id FK "nullable - set once categorized/forwarded"  
+		string description  ""  
+		string category  "nullable - AI/Admin categorized"  
+		string status  "New | Pending Review | Forwarded | Documents Required | Documents Verified | Resolved | Closed"  
+		string source  "AI Escalation | Direct Raise"  
+		text ai_response_text  "nullable"  
+		float ai_confidence_score  "nullable"  
+		text resolution_text  "nullable"  
+		int resolved_by FK "nullable - references USER"  
+		datetime submission_date  ""  
+		datetime resolved_at  "nullable"  
+		datetime updated_at  ""  
+	}
+
+	QUERY_ASSIGNMENT {
+		int assignment_id PK ""  
+		int query_id FK ""  
+		int assigned_to FK "references USER - TIC/Admin"  
+		int assigned_by FK "references USER - Admin"  
+		int department_id FK ""  
+		string assignment_status  "Assigned | Reassigned | Withdrawn"  
+		datetime assigned_at  ""  
+	}
+
+	KNOWLEDGE_BASE_ENTRY {
+		int kb_id PK ""  
+		int department_id FK "nullable - null = institution-wide"  
+		int verified_by FK "references USER - Admin"  
+		int source_query_id FK "nullable - resolution promoted to KB"  
+		string title  ""  
+		text content  ""  
+		vector embedding_vector  ""  
+		string category  ""  
+		string status  "Active | Inactive | Archived"  
+		datetime created_at  ""  
+		datetime updated_at  ""  
+	}
+
+	DOCUMENT {
+		int document_id PK ""  
+		int query_id FK ""  
+		int requested_by FK "references USER, Admin/TIC"  
+		int uploaded_by FK "nullable - references USER, Student, until uploaded"  
+		int reviewed_by FK "nullable - references USER, until reviewed"  
+		string document_name  "requested name/type"  
+		string instructions  "nullable"  
+		boolean is_mandatory  ""  
+		string file_name  "nullable - populated on upload"  
+		string file_type  "nullable"  
+		int file_size_kb  "nullable"  
+		string storage_key  "nullable - AWS S3 object key"  
+		string status  "Pending | Submitted | Under Review | Accepted | Rejected"  
+		string review_comment  "nullable"  
+		datetime requested_at  ""  
+		datetime uploaded_at  "nullable"  
+		datetime reviewed_at  "nullable"  
+	}
+
+	MEETING {
+		int meeting_id PK ""  
+		int query_id FK "nullable - meetings may cover general dept matters"  
+		int student_id FK "references USER"  
+		int tic_id FK "references USER"  
+		date meeting_date  ""  
+		time meeting_time  ""  
+		int duration_minutes  ""  
+		string mode  "In-person | Online"  
+		string location_or_link  ""  
+		string status  "Proposed | Accepted | Booked | Declined | Cancelled | Completed"  
+		boolean slot_verified_externally  "result of live Timetable Svc check"  
+		string cancellation_reason  "nullable"  
+		datetime created_at  ""  
+		datetime updated_at  ""  
+	}
+
+	NOTIFICATION {
+		int notification_id PK ""  
+		int recipient_id FK "references USER"  
+		int related_query_id FK "nullable"  
+		int related_document_id FK "nullable"  
+		int related_meeting_id FK "nullable"  
+		string event_type  "Query Update | Resolution | Doc Request | Doc Submitted | Meeting Scheduled | Meeting Cancelled"  
+		string message  ""  
+		string delivery_channel  "Email | In-App"  
+		string delivery_status  "Sent | Failed | Pending"  
+		boolean is_read  ""  
+		datetime created_at  ""  
+		datetime read_at  "nullable"  
+	}
+
+	AUDIT_LOG {
+		int audit_id PK ""  
+		int performed_by FK "references USER"  
+		string action_type  "Create | Update | Resolve | Forward | Upload | Review | Schedule | Cancel"  
+		string entity_type  "Query | Document | Meeting | KnowledgeBaseEntry"  
+		int entity_id  ""  
+		text old_value  "nullable"  
+		text new_value  "nullable"  
+		string ip_address  ""  
+		datetime timestamp  ""  
+	}
+
+	ROLE||--o{USER:"classifies"
+	DEPARTMENT|o--o{USER:"employs / enrolls"
+	USER||--o{QUERY:"raises (Student)"
+	USER|o--o{QUERY:"resolves (Admin/TIC)"
+	DEPARTMENT|o--o{QUERY:"categorized under"
+	QUERY||--o{QUERY_ASSIGNMENT:"routed via"
+	USER||--o{QUERY_ASSIGNMENT:"assigned to (TIC)"
+	USER||--o{QUERY_ASSIGNMENT:"assigned by (Admin)"
+	DEPARTMENT||--o{QUERY_ASSIGNMENT:"scopes"
+	QUERY|o--o|KNOWLEDGE_BASE_ENTRY:"promoted to"
+	USER||--o{KNOWLEDGE_BASE_ENTRY:"verifies (Admin)"
+	DEPARTMENT|o--o{KNOWLEDGE_BASE_ENTRY:"scopes"
+	QUERY||--o{DOCUMENT:"requires / attached to"
+	USER||--o{DOCUMENT:"requests (Admin/TIC)"
+	USER|o--o{DOCUMENT:"uploads (Student)"
+	USER|o--o{DOCUMENT:"reviews (Admin/TIC)"
+	QUERY|o--o{MEETING:"leads to"
+	USER||--o{MEETING:"attends (Student)"
+	USER||--o{MEETING:"attends (TIC)"
+	USER||--o{NOTIFICATION:"receives"
+	QUERY|o--o{NOTIFICATION:"triggers"
+	DOCUMENT|o--o{NOTIFICATION:"triggers"
+	MEETING|o--o{NOTIFICATION:"triggers"
+	USER||--o{AUDIT_LOG:"performs"
