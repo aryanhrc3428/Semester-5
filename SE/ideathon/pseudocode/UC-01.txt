@@ -1,0 +1,17 @@
+1: procedure Authenticate(credentials)
+2:     auth_response <- call ExternalAuthService(credentials)
+3:     if auth_response.is_valid = false then
+4:         return error "Invalid Credentials"
+5:     end if
+6:     user_record <- query USERS table using auth_response.user_identity
+7:     if user_record is not found then
+8:         return error "Unauthorized Account"
+9:     end if
+10:    role_record <- query ROLE table using user_record.role_id
+11:    if role_record is empty then
+12:        return error "Unauthorized Account"
+13:    end if
+14:    session_token <- generate secure token for user_record.user_id with expiration
+15:    target_dashboard <- determine dashboard URL using role_record.role_name
+16:    return session_token, user_record, role_record.role_name, target_dashboard
+17: end procedure

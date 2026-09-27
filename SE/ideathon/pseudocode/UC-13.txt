@@ -1,0 +1,31 @@
+1: procedure TICRequestDocument(tic_id, query_id, document_requirement_note)
+2:     user_record <- query USERS table where user_id = tic_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "TIC" then
+5:         return error "Unauthorized access. TIC privileges required."
+6:     end if
+7:     target_query <- query D3_QUERIES where query_id = query_id
+8:     if target_query is empty then
+9:         return error "Invalid query reference"
+10:    end if
+11:    if target_query.assigned_tic != tic_id then
+12:        return error "Unauthorized. Query is not assigned to you."
+13:    end if
+14:    if document_requirement_note is empty then
+15:        return error "Document requirements cannot be empty"
+16:    end if
+17:    current_time <- get system time
+18:    target_query.status <- "Documents Required"
+19:    target_query.requirement_note <- document_requirement_note
+20:    target_query.updated_at <- current_time
+21:    update D3_QUERIES with target_query
+22:    audit_record <- initialize new audit log
+23:    audit_record.user_id <- tic_id
+24:    audit_record.action_type <- "Request Document"
+25:    audit_record.entity <- "Query"
+26:    audit_record.entity_id <- query_id
+27:    audit_record.timestamp <- current_time
+28:    insert audit_record into D7_AUDIT_LOGS table
+29:    call DispatchNotificationAsync(target_query.student_id, "Document Required", query_id)
+30:    return success "Document request sent to student", query_id
+31: end procedure

@@ -1,0 +1,28 @@
+flowchart TD
+    Start([Start: AdminResolveQuery]) --> Input[/Input: admin_id, query_id, text, kb_flag/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == Admin?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    
+    QQuery --> CheckFound{Query found?}
+    CheckFound -- No --> Err2[/Return Error: Invalid query reference/]
+    CheckFound -- Yes --> CheckText{Resolution text empty?}
+    
+    CheckText -- Yes --> Err3[/Return Error: Cannot be empty/]
+    CheckText -- No --> UpdateFields[Update status = Resolved & resolution_text]
+    UpdateFields --> UpdateDB[(Update D3: QUERIES)]
+    UpdateDB --> InitAudit[Initialize audit_record]
+    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    
+    Notif --> CheckFlag{add_to_kb_flag == true?}
+    CheckFlag -- Yes --> CallKB[Call KnowledgeBaseManagement: Create]
+    CallKB --> Output[/Return Success/]
+    CheckFlag -- No --> Output
+    
+    Output --> End([End])
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

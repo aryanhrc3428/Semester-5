@@ -1,0 +1,26 @@
+flowchart TD
+    Start([Start: ForwardQueryToTIC]) --> Input[/Input: admin_id, query_id, tic_id/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == Admin?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    
+    QQuery --> CheckFound{Query found?}
+    CheckFound -- No --> Err2[/Return Error: Invalid query reference/]
+    CheckFound -- Yes --> QTIC[(Query USERS & ROLE for tic_id)]
+    
+    QTIC --> CheckTIC{Valid TIC reference?}
+    CheckTIC -- No --> Err3[/Return Error: Invalid TIC reference/]
+    CheckTIC -- Yes --> UpdateFields[Update assigned_tic & status]
+    UpdateFields --> UpdateDB[(Update D3: QUERIES)]
+    UpdateDB --> InitAudit[Initialize audit_record]
+    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    InsertAudit --> Notif[Call DispatchNotificationAsync: TIC]
+    
+    Notif --> Output[/Return Success/]
+    Output --> End([End])
+    
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

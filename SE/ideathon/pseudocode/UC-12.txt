@@ -1,0 +1,36 @@
+1: procedure TICResolveQuery(tic_id, query_id, resolution_text, add_to_kb_flag)
+2:     user_record <- query USERS table where user_id = tic_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "TIC" then
+5:         return error "Unauthorized access. TIC privileges required."
+6:     end if
+7:     target_query <- query D3_QUERIES where query_id = query_id
+8:     if target_query is empty then
+9:         return error "Invalid query reference"
+10:    end if
+11:    if target_query.assigned_tic != tic_id then
+12:        return error "Unauthorized. Query is not assigned to you."
+13:    end if
+14:    if resolution_text is empty then
+15:        return error "Resolution text cannot be empty"
+16:    end if
+17:    current_time <- get system time
+18:    target_query.resolution <- resolution_text
+19:    target_query.status <- "Resolved"
+20:    target_query.resolved_by <- tic_id
+21:    target_query.updated_at <- current_time
+22:    update D3_QUERIES with target_query
+23:    audit_record <- initialize new audit log
+24:    audit_record.user_id <- tic_id
+25:    audit_record.action_type <- "Resolve"
+26:    audit_record.entity <- "Query"
+27:    audit_record.entity_id <- query_id
+28:    audit_record.timestamp <- current_time
+29:    insert audit_record into D7_AUDIT_LOGS table
+30:    call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
+31:    if add_to_kb_flag = true then
+32:        kb_data <- struct(title: target_query.description, content: resolution_text, category: target_query.category, source: "TIC Resolution")
+33:        call KnowledgeBaseManagement(tic_id, "Create", kb_data)
+34:    end if
+35:    return success "Query successfully resolved", query_id
+36: end procedure

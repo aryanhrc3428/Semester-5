@@ -1,0 +1,25 @@
+flowchart TD
+    Start([Start: UploadDocument]) --> Input[/Input: student_id, query_id, file_obj/]
+    Input --> CheckSize{file_obj.size > 25MB?}
+    
+    CheckSize -- Yes --> Err1[/Return Error: Size limit exceeded/]
+    CheckSize -- No --> CheckFormat{Format supported?}
+    
+    CheckFormat -- No --> Err2[/Return Error: Unsupported format/]
+    CheckFormat -- Yes --> QQuery[(Query D3: QUERIES)]
+    
+    QQuery --> CheckQuery{query found?}
+    CheckQuery -- No --> Err3[/Return Error: Invalid query/]
+    
+    CheckQuery -- Yes --> S3[Call AWSS3_Upload]
+    S3 --> InitDoc[Initialize doc_record]
+    InitDoc --> InsertDoc[(Insert into D4: DOCUMENTS)]
+    InsertDoc --> UpdateQuery[Update parent_query.status]
+    UpdateQuery --> UpdateDB[(Update D3: QUERIES)]
+    UpdateDB --> AsyncNotif[Call DispatchNotificationAsync: Staff]
+    AsyncNotif --> Output[/Return Success: document_id/]
+    
+    Output --> End([End])
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

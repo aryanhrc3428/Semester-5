@@ -1,0 +1,26 @@
+flowchart TD
+    Start([Start: TICRequestDocument]) --> Input[/Input: tic_id, query_id, doc_note/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == TIC?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    
+    QQuery --> CheckOwner{Query found & assigned to TIC?}
+    CheckOwner -- No --> Err2[/Return Error: Invalid/Unauthorized query/]
+    
+    CheckOwner -- Yes --> CheckNote{doc_note empty?}
+    CheckNote -- Yes --> Err3[/Return Error: Cannot be empty/]
+    
+    CheckNote -- No --> UpdateFields[Update status = Documents Required & note]
+    UpdateFields --> UpdateDB[(Update D3: QUERIES)]
+    UpdateDB --> InitAudit[Initialize audit_record]
+    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    
+    Notif --> Output[/Return Success/]
+    Output --> End([End])
+    
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

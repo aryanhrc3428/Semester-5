@@ -1,0 +1,53 @@
+1: procedure ManageMeeting(tic_id, action_type, meeting_data)
+2:     user_record <- query USERS table where user_id = tic_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "TIC" then
+5:         return error "Unauthorized access. TIC privileges required."
+6:     end if
+7:     current_time <- get system time
+8:     if action_type = "Schedule" then
+9:         conflict_check <- query D5_MEETINGS where tic_id = tic_id and date = meeting_data.date and start_time = meeting_data.start_time and status = "Scheduled"
+10:        if conflict_check is not empty then
+11:            return error "Time slot is already booked"
+12:        end if
+13:        new_meeting_id <- generate unique ID
+14:        meeting_record <- initialize new record
+15:        meeting_record.meeting_id <- new_meeting_id
+16:        meeting_record.query_id <- meeting_data.query_id
+17:        meeting_record.tic_id <- tic_id
+18:        meeting_record.student_id <- meeting_data.student_id
+19:        meeting_record.date <- meeting_data.date
+20:        meeting_record.start_time <- meeting_data.start_time
+21:        meeting_record.end_time <- meeting_data.end_time
+22:        meeting_record.status <- "Scheduled"
+23:        meeting_record.created_at <- current_time
+24:        insert meeting_record into D5_MEETINGS table
+25:        log_entity_id <- new_meeting_id
+26:        notification_type <- "Meeting Scheduled"
+27:        success_msg <- "Meeting successfully scheduled"
+28:        target_student <- meeting_data.student_id
+29:    else if action_type = "Cancel" then
+30:        target_meeting <- query D5_MEETINGS where meeting_id = meeting_data.meeting_id
+31:        if target_meeting is empty or target_meeting.tic_id != tic_id then
+32:            return error "Invalid or unauthorized meeting reference"
+33:        end if
+34:        target_meeting.status <- "Cancelled"
+35:        target_meeting.updated_at <- current_time
+36:        update D5_MEETINGS with target_meeting
+37:        log_entity_id <- meeting_data.meeting_id
+38:        notification_type <- "Meeting Cancelled"
+39:        success_msg <- "Meeting successfully cancelled"
+40:        target_student <- target_meeting.student_id
+41:    else
+42:        return error "Invalid action type"
+43:    end if
+44:    audit_record <- initialize new audit log
+45:    audit_record.user_id <- tic_id
+46:    audit_record.action_type <- action_type
+47:    audit_record.entity <- "Meeting"
+48:    audit_record.entity_id <- log_entity_id
+49:    audit_record.timestamp <- current_time
+50:    insert audit_record into D7_AUDIT_LOGS table
+51:    call DispatchNotificationAsync(target_student, notification_type, log_entity_id)
+52:    return success success_msg, log_entity_id
+53: end procedure

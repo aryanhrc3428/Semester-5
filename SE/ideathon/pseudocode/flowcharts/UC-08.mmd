@@ -1,0 +1,19 @@
+flowchart TD
+    Start([Start: AdminViewNewQueries]) --> Input[/Input: admin_id/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == Admin?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQueries[(Query D3: QUERIES where status = Open)]
+    QQueries --> Sort[Sort by created_at ascending]
+    Sort --> LoopStart{More queries to process?}
+    
+    LoopStart -- Yes --> QStudent[(Query USERS: student_id)]
+    QStudent --> Combine[Combine query + student details]
+    Combine --> InsertList[Insert into admin_dashboard_view]
+    InsertList --> LoopStart
+    
+    LoopStart -- No --> Output[/Return Success: admin_dashboard_view/]
+    Output --> End([End])
+    
+    Err1 --> End

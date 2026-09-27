@@ -1,0 +1,31 @@
+1: procedure DispatchNotificationAsync(target, event_type, reference_id)
+2:     if target is empty or event_type is empty then
+3:         return error "Invalid notification parameters"
+4:     end if
+5:     recipient_emails <- empty list
+6:     if target in ("Admin", "Staff", "TIC") then
+7:         role_users <- query USERS table where role_name = target
+8:         for each user in role_users do
+9:             insert user.email into recipient_emails
+10:        end for
+11:    else
+12:        target_user <- query USERS table where user_id = target
+13:        if target_user is not empty then
+14:            insert target_user.email into recipient_emails
+15:        end if
+16:    end if
+17:    email_template <- call TemplateBuilder(event_type, reference_id)
+18:    for each address in recipient_emails do
+19:        delivery_status <- call ResendAPI_SendEmail(address, email_template.subject, email_template.body)
+20:        current_time <- get system time
+21:        log_record <- initialize new record
+22:        log_record.action_type <- "Notification Dispatched"
+23:        log_record.entity <- "Email"
+24:        log_record.entity_id <- reference_id
+25:        log_record.details <- concat(event_type, " sent to ", address)
+26:        log_record.status <- delivery_status
+27:        log_record.timestamp <- current_time
+28:        insert log_record into D7_AUDIT_LOGS table
+29:    end for
+30:    return success "Notification background process completed"
+31: end procedure

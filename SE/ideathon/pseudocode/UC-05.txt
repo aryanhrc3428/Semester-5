@@ -1,0 +1,28 @@
+1: procedure UploadDocument(student_id, query_id, file_obj)
+2:     if file_obj.size > 25MB then
+3:         return error "File size exceeds maximum 25MB limit"
+4:     end if
+5:     if file_obj.format not in ("PDF", "JPG", "JPEG", "PNG") then
+6:         return error "Unsupported file format"
+7:     end if
+8:     parent_query <- query D3_QUERIES where query_id = query_id
+9:     if parent_query is empty then
+10:        return error "Invalid query association"
+11:    end if
+12:    storage_key <- call AWSS3_Upload(file_obj.stream, file_obj.name)
+13:    current_time <- get system time
+14:    doc_record <- initialize new record
+15:    doc_record.query_id <- query_id
+16:    doc_record.uploaded_by <- student_id
+17:    doc_record.file_name <- file_obj.name
+18:    doc_record.file_type <- file_obj.format
+19:    doc_record.file_size <- file_obj.size
+20:    doc_record.storage_key <- storage_key
+21:    doc_record.status <- "Pending"
+22:    doc_record.uploaded_at <- current_time
+23:    insert doc_record into D4_DOCUMENTS table
+24:    parent_query.status <- "Document Submitted"
+25:    update D3_QUERIES with parent_query
+26:    call DispatchNotificationAsync("Staff", "Document Uploaded", doc_record.query_id)
+27:    return success "Document securely uploaded", doc_record.document_id
+28: end procedure

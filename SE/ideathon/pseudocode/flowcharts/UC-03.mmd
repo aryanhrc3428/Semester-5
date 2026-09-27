@@ -1,0 +1,18 @@
+flowchart TD
+    Start([Start: RaiseNewQuery]) --> Input[/Input: student_id, query_text, dept_id, category/]
+    Input --> CheckEmpty{query_text empty?}
+    
+    CheckEmpty -- Yes --> Err1[/Return Error: Cannot be empty/]
+    
+    CheckEmpty -- No --> Init[Generate new_query_id & System Time]
+    Init --> PopQuery[Populate query_record]
+    PopQuery --> InsertDB[(Insert into D3: QUERIES)]
+    
+    InsertDB --> InitAudit[Populate audit_record]
+    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    
+    InsertAudit --> AsyncNotif[Call DispatchNotificationAsync: Admin Queue]
+    AsyncNotif --> Output[/Return Success: new_query_id/]
+    
+    Output --> End([End])
+    Err1 --> End

@@ -1,0 +1,16 @@
+1: procedure TICViewAssignedQueries(tic_id)
+2:     user_record <- query USERS table where user_id = tic_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "TIC" then
+5:         return error "Unauthorized access. TIC privileges required."
+6:     end if
+7:     assigned_queries <- query D3_QUERIES where assigned_tic = tic_id
+8:     sort assigned_queries by updated_at descending
+9:     tic_dashboard_view <- empty list
+10:    for each query_record in assigned_queries do
+11:        student_record <- query USERS table where user_id = query_record.student_id
+12:        ticket_display <- combine(query_record, student_record.name, student_record.department)
+13:        insert ticket_display into tic_dashboard_view
+14:    end for
+15:    return success "TIC queue loaded", tic_dashboard_view
+16: end procedure

@@ -1,0 +1,26 @@
+1: procedure RaiseNewQuery(student_id, query_text, department_id, category)
+2:     if query_text is empty then
+3:         return error "Query text cannot be empty"
+4:     end if
+5:     new_query_id <- generate unique ID
+6:     current_time <- get system time
+7:     query_record <- initialize new record
+8:     query_record.query_id <- new_query_id
+9:     query_record.student_id <- student_id
+10:    query_record.department_id <- department_id
+11:    query_record.description <- query_text
+12:    query_record.category <- category
+13:    query_record.status <- "Open"
+14:    query_record.created_at <- current_time
+15:    query_record.updated_at <- current_time
+16:    insert query_record into D3_QUERIES table
+17:    audit_record <- initialize new audit log
+18:    audit_record.user_id <- student_id
+19:    audit_record.action_type <- "Create"
+20:    audit_record.entity <- "Query"
+21:    audit_record.entity_id <- new_query_id
+22:    audit_record.timestamp <- current_time
+23:    insert audit_record into D7_AUDIT_LOGS table
+24:    call DispatchNotificationAsync("Admin", "New Query Escalated", new_query_id)
+25:    return success "Query submitted successfully", new_query_id
+26: end procedure

@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "7eee74e8e000e395",
+        "id": "61eca4f368da59a3",
         "type": "tabs",
         "children": [
           {
-            "id": "4fc113fe67b793c4",
+            "id": "7bc82c7d30e60581",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "ML/notes/test-1.md",
-                "mode": "preview",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "test-1"
+              "title": "New tab"
             }
           }
         ]
@@ -188,11 +184,15 @@
       "bases:Create new base": false
     }
   },
-  "active": "4fc113fe67b793c4",
+  "active": "7bc82c7d30e60581",
   "lastOpenFiles": [
+    "Untitled.base",
+    "GATE-CSE-2027",
+    "Untitled.canvas",
+    "ML/notes/test-1.md",
+    "Untitled",
     "ML/notes/test-1.pdf",
     "SE/ref_1.pdf",
-    "SE/ideathon/documents/L2-DFD-S05.png",
-    "ML/notes/test-1.md"
+    "SE/ideathon/documents/L2-DFD-S05.png"
   ]
 }

@@ -1,0 +1,32 @@
+flowchart TD
+    Start([Start: TICReviewDocument]) --> Input[/Input: tic_id, query_id, doc_id, decision, notes/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == TIC?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    QQuery --> QDoc[(Query D4: DOCUMENTS)]
+    
+    QDoc --> CheckValid{Query owner & Doc found?}
+    CheckValid -- No --> Err2[/Return Error: Invalid reference/]
+    
+    CheckValid -- Yes --> CheckDecision{review_decision?}
+    
+    CheckDecision -- "Accept" --> AcceptFields[Set Doc Verified, Query Assigned]
+    AcceptFields --> TypeAcc[notification_type = Accepted]
+    
+    CheckDecision -- "Reject" --> RejectFields[Set Doc Rejected, Query Docs Req]
+    RejectFields --> TypeRej[notification_type = Rejected]
+    
+    TypeAcc --> UpdateDB[(Update D4 & D3)]
+    TypeRej --> UpdateDB
+    
+    UpdateDB --> InitAudit[Initialize audit_record]
+    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    
+    Notif --> Output[/Return Success/]
+    Output --> End([End])
+    
+    Err1 --> End
+    Err2 --> End

@@ -1,0 +1,27 @@
+flowchart TD
+    Start([Start: DispatchNotificationAsync]) --> Input[/Input: target, event, reference_id/]
+    Input --> CheckEmpty{Target/Event empty?}
+    
+    CheckEmpty -- Yes --> Err1[/Return Error: Invalid parameters/]
+    CheckEmpty -- No --> CheckTarget{Is target a Role?}
+    
+    CheckTarget -- Yes --> QRoleUsers[(Query USERS by Role)]
+    QRoleUsers --> AddRoleEmails[Insert into recipient_emails]
+    
+    CheckTarget -- No --> QUser[(Query USERS by ID)]
+    QUser --> AddUserEmail[Insert into recipient_emails]
+    
+    AddRoleEmails --> Builder[Call TemplateBuilder]
+    AddUserEmail --> Builder
+    
+    Builder --> LoopStart{More recipients?}
+    
+    LoopStart -- Yes --> Resend[Call ResendAPI_SendEmail]
+    Resend --> InitLog[Initialize log_record]
+    InitLog --> InsertLog[(Insert into D7: AUDIT_LOGS)]
+    InsertLog --> LoopStart
+    
+    LoopStart -- No --> Output[/Return Success/]
+    Output --> End([End])
+    
+    Err1 --> End

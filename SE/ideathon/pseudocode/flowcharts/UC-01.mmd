@@ -1,0 +1,24 @@
+flowchart TD
+    Start([Start: Authenticate]) --> Input[/Input: credentials/]
+    Input --> CallAuth[Call ExternalAuthService]
+    CallAuth --> CheckValid{auth_response.is_valid?}
+    
+    CheckValid -- No --> Err1[/Return Error: Invalid Credentials/]
+    
+    CheckValid -- Yes --> QUsers[(USERS Table)]
+    QUsers --> CheckUser{user_record found?}
+    
+    CheckUser -- No --> Err2[/Return Error: Unauthorized Account/]
+    
+    CheckUser -- Yes --> QRole[(ROLE Table)]
+    QRole --> CheckRole{role_record found?}
+    
+    CheckRole -- No --> Err2
+    
+    CheckRole -- Yes --> GenToken[Generate session_token]
+    GenToken --> GetURL[Determine target_dashboard URL]
+    GetURL --> Output[/Return: session_token, user_record, role, dashboard/]
+    Output --> End([End])
+    
+    Err1 --> End
+    Err2 --> End

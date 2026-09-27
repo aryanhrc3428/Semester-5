@@ -1,0 +1,18 @@
+1: procedure ResolveQueryRAG(student_query, threshold_T)
+2:     if student_query is empty then
+3:         return error "Invalid query input"
+4:     end if
+5:     Eq <- call GeminiAPI_GenerateEmbedding(student_query)
+6:     candidate_entries <- query D2_KNOWLEDGE for active, verified entries
+7:     results <- empty priority queue
+8:     for each entry d in candidate_entries do
+9:         similarity_score <- (Eq * d.embedding_vector) / (||Eq|| * ||d.embedding_vector||)
+10:        insert (d, similarity_score) into results
+11:    end for
+12:    top_k_context <- extract top 5 entries from results
+13:    if top_k_context is empty or highest similarity_score < threshold_T then
+14:        return response "Escalation Required", action "Raise Query to Admin"
+15:    end if
+16:    ai_answer <- call GeminiAPI_GenerateGroundedResponse(student_query, top_k_context)
+17:    return response "Grounded Answer", ai_answer, top_k_context.sources
+18: end procedure

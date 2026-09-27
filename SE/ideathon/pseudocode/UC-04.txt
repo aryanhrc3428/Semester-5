@@ -1,0 +1,15 @@
+1: procedure LoadStudentDashboard(student_id)
+2:     if student_id is empty then
+3:         return error "Invalid student identity"
+4:     end if
+5:     student_queries <- query D3_QUERIES where student_id = student_id
+6:     sort student_queries by updated_at descending
+7:     dashboard_view <- empty list
+8:     for each query_record in student_queries do
+9:         associated_docs <- query D4_DOCUMENTS where query_id = query_record.query_id
+10:        associated_meetings <- query D5_MEETINGS where query_id = query_record.query_id
+11:        compiled_record <- combine(query_record, associated_docs, associated_meetings)
+12:        insert compiled_record into dashboard_view
+13:    end for
+14:    return success "Data retrieved", dashboard_view
+15: end procedure

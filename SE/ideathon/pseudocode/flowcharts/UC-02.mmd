@@ -1,0 +1,21 @@
+flowchart TD
+    Start([Start: ResolveQueryRAG]) --> Input[/Input: student_query, threshold_T/]
+    Input --> CheckEmpty{query empty?}
+    
+    CheckEmpty -- Yes --> Err1[/Return Error: Invalid Input/]
+    
+    CheckEmpty -- No --> Embed[Call GeminiAPI_GenerateEmbedding]
+    Embed --> QKB[(D2: KNOWLEDGE)]
+    QKB --> Math[Calculate similarity_scores using Vector Math]
+    Math --> PQ[Insert into Priority Queue]
+    PQ --> TopK[Extract top 5 context entries]
+    TopK --> CheckThresh{Context empty OR score < threshold_T?}
+    
+    CheckThresh -- Yes --> Escalate[/Return: Escalation Required Action/]
+    
+    CheckThresh -- No --> GenAnswer[Call GeminiAPI_GenerateGroundedResponse]
+    GenAnswer --> Output[/Return: ai_answer, sources/]
+    
+    Output --> End([End])
+    Err1 --> End
+    Escalate --> End

@@ -1,0 +1,33 @@
+1: procedure AdminResolveQuery(admin_id, query_id, resolution_text, add_to_kb_flag)
+2:     user_record <- query USERS table where user_id = admin_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "Admin" then
+5:         return error "Unauthorized access. Admin privileges required."
+6:     end if
+7:     target_query <- query D3_QUERIES where query_id = query_id
+8:     if target_query is empty then
+9:         return error "Invalid query reference"
+10:    end if
+11:    if resolution_text is empty then
+12:        return error "Resolution text cannot be empty"
+13:    end if
+14:    current_time <- get system time
+15:    target_query.resolution <- resolution_text
+16:    target_query.status <- "Resolved"
+17:    target_query.resolved_by <- admin_id
+18:    target_query.updated_at <- current_time
+19:    update D3_QUERIES with target_query
+20:    audit_record <- initialize new audit log
+21:    audit_record.user_id <- admin_id
+22:    audit_record.action_type <- "Resolve"
+23:    audit_record.entity <- "Query"
+24:    audit_record.entity_id <- query_id
+25:    audit_record.timestamp <- current_time
+26:    insert audit_record into D7_AUDIT_LOGS table
+27:    call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
+28:    if add_to_kb_flag = true then
+29:        kb_data <- struct(title: target_query.description, content: resolution_text, category: target_query.category, source: "Admin Resolution")
+30:        call KnowledgeBaseManagement(admin_id, "Create", kb_data)
+31:    end if
+32:    return success "Query successfully resolved", query_id
+33: end procedure

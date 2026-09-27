@@ -1,0 +1,28 @@
+flowchart TD
+    Start([Start: ViewTimetableAvailability]) --> Input[/Input: tic_id, target_date/]
+    Input --> CheckEmpty{Inputs empty?}
+    
+    CheckEmpty -- Yes --> Err1[/Return Error: Inputs required/]
+    CheckEmpty -- No --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == TIC?}
+    
+    CheckRole -- No --> Err2[/Return Error: Invalid TIC/]
+    CheckRole -- Yes --> FetchExt[Call ExternalTimetableService_Fetch]
+    
+    FetchExt --> CheckExt{base_schedule empty?}
+    CheckExt -- Yes --> OutEmpty[/Return Success: empty list/]
+    
+    CheckExt -- No --> QMeetings[(Query D5: MEETINGS for booked slots)]
+    QMeetings --> LoopStart{More slots in base_schedule?}
+    
+    LoopStart -- Yes --> LoopCheck{Conflict with booked_meetings?}
+    LoopCheck -- Yes --> LoopStart
+    LoopCheck -- No --> AddSlot[Insert slot into available_slots]
+    AddSlot --> LoopStart
+    
+    LoopStart -- No --> Output[/Return Success: available_slots/]
+    
+    Output --> End([End])
+    OutEmpty --> End
+    Err1 --> End
+    Err2 --> End

@@ -1,0 +1,43 @@
+1: procedure TICReviewDocument(tic_id, query_id, document_id, review_decision, review_notes)
+2:     user_record <- query USERS table where user_id = tic_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "TIC" then
+5:         return error "Unauthorized access. TIC privileges required."
+6:     end if
+7:     target_query <- query D3_QUERIES where query_id = query_id
+8:     if target_query is empty or target_query.assigned_tic != tic_id then
+9:         return error "Invalid or unauthorized query reference"
+10:    end if
+11:    target_doc <- query D4_DOCUMENTS where document_id = document_id and query_id = query_id
+12:    if target_doc is empty then
+13:        return error "Document not found for this query"
+14:    end if
+15:    current_time <- get system time
+16:    if review_decision = "Accept" then
+17:        target_doc.status <- "Verified"
+18:        target_query.status <- "Assigned to TIC"
+19:        notification_type <- "Document Accepted"
+20:    else if review_decision = "Reject" then
+21:        target_doc.status <- "Rejected"
+22:        target_doc.review_notes <- review_notes
+23:        target_query.status <- "Documents Required"
+24:        target_query.requirement_note <- review_notes
+25:        notification_type <- "Document Rejected"
+26:    else
+27:        return error "Invalid review decision"
+28:    end if
+29:    target_doc.reviewed_by <- tic_id
+30:    target_doc.updated_at <- current_time
+31:    target_query.updated_at <- current_time
+32:    update D4_DOCUMENTS with target_doc
+33:    update D3_QUERIES with target_query
+34:    audit_record <- initialize new audit log
+35:    audit_record.user_id <- tic_id
+36:    audit_record.action_type <- concat("Document ", review_decision)
+37:    audit_record.entity <- "Document"
+38:    audit_record.entity_id <- document_id
+39:    audit_record.timestamp <- current_time
+40:    insert audit_record into D7_AUDIT_LOGS table
+41:    call DispatchNotificationAsync(target_query.student_id, notification_type, query_id)
+42:    return success "Document review completed", document_id
+43: end procedure

@@ -1,0 +1,30 @@
+1: procedure ForwardQueryToTIC(admin_id, query_id, tic_id)
+2:     user_record <- query USERS table where user_id = admin_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "Admin" then
+5:         return error "Unauthorized access. Admin privileges required."
+6:     end if
+7:     target_query <- query D3_QUERIES where query_id = query_id
+8:     if target_query is empty then
+9:         return error "Invalid query reference"
+10:    end if
+11:    tic_record <- query USERS table where user_id = tic_id
+12:    tic_role <- query ROLE table where role_id = tic_record.role_id
+13:    if tic_record is empty or tic_role.role_name != "TIC" then
+14:        return error "Invalid TIC reference"
+15:    end if
+16:    current_time <- get system time
+17:    target_query.assigned_tic <- tic_id
+18:    target_query.status <- "Assigned to TIC"
+19:    target_query.updated_at <- current_time
+20:    update D3_QUERIES with target_query
+21:    audit_record <- initialize new audit log
+22:    audit_record.user_id <- admin_id
+23:    audit_record.action_type <- "Forward"
+24:    audit_record.entity <- "Query"
+25:    audit_record.entity_id <- query_id
+26:    audit_record.timestamp <- current_time
+27:    insert audit_record into D7_AUDIT_LOGS table
+28:    call DispatchNotificationAsync(tic_id, "Query Assigned", query_id)
+29:    return success "Query successfully forwarded to TIC", query_id
+30: end procedure

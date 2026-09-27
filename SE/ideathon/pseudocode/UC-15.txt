@@ -1,0 +1,29 @@
+1: procedure ViewTimetableAvailability(tic_id, target_date)
+2:     if tic_id is empty or target_date is empty then
+3:         return error "TIC reference and target date are required"
+4:     end if
+5:     tic_record <- query USERS table where user_id = tic_id
+6:     tic_role <- query ROLE table where role_id = tic_record.role_id
+7:     if tic_record is empty or tic_role.role_name != "TIC" then
+8:         return error "Invalid TIC reference"
+9:     end if
+10:    base_schedule <- call ExternalTimetableService_Fetch(tic_id, target_date)
+11:    if base_schedule is empty then
+12:        return success "No schedule data found for this date", empty list
+13:    end if
+14:    booked_meetings <- query D5_MEETINGS where tic_id = tic_id and date = target_date and status = "Scheduled"
+15:    available_slots <- empty list
+16:    for each slot in base_schedule do
+17:        is_conflict <- false
+18:        for each meeting in booked_meetings do
+19:            if slot.start_time = meeting.start_time then
+20:                is_conflict <- true
+21:                break
+22:            end if
+23:        end for
+24:        if is_conflict = false then
+25:            insert slot into available_slots
+26:        end if
+27:    end for
+28:    return success "Available slots retrieved", available_slots
+29: end procedure

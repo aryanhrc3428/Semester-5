@@ -1,0 +1,38 @@
+flowchart TD
+    Start([Start: KnowledgeBaseManagement]) --> Input[/Input: admin_id, action_type, entry_data/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == Admin OR Authorized TIC?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> CheckAction{action_type?}
+    
+    CheckAction -- "Create" --> CheckData{Title/Content empty?}
+    CheckData -- Yes --> Err2[/Return Error: Incomplete entry/]
+    CheckData -- No --> Embed[Call GeminiAPI_GenerateEmbedding]
+    Embed --> InitKB[Initialize kb_record]
+    InitKB --> InsertD2[(Insert into D2: KNOWLEDGE)]
+    InsertD2 --> OutCreate[/Return Success: new_kb_id/]
+    
+    CheckAction -- "Update" --> QUpdate[(Query D2: KNOWLEDGE)]
+    QUpdate --> CheckFoundU{Entry found?}
+    CheckFoundU -- No --> Err3[/Return Error: Entry not found/]
+    CheckFoundU -- Yes --> CheckMod{Content modified?}
+    CheckMod -- Yes --> EmbedU[Call GeminiAPI_GenerateEmbedding]
+    EmbedU --> UpdateFields[Update kb_record fields]
+    CheckMod -- No --> UpdateFields
+    UpdateFields --> UpdateD2U[(Update D2: KNOWLEDGE)]
+    UpdateD2U --> OutUpdate[/Return Success: kb_id/]
+    
+    CheckAction -- "Deactivate" --> QDeact[(Query D2: KNOWLEDGE)]
+    QDeact --> CheckFoundD{Entry found?}
+    CheckFoundD -- No --> Err3
+    CheckFoundD -- Yes --> DeactFields[Set validity_status = Inactive]
+    DeactFields --> UpdateD2D[(Update D2: KNOWLEDGE)]
+    UpdateD2D --> OutDeact[/Return Success: kb_id/]
+    
+    OutCreate --> End([End])
+    OutUpdate --> End
+    OutDeact --> End
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

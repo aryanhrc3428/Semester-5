@@ -1,0 +1,33 @@
+flowchart TD
+    Start([Start: ManageMeeting]) --> Input[/Input: tic_id, action_type, meeting_data/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == TIC?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> CheckAction{action_type?}
+    
+    CheckAction -- "Schedule" --> QConflict[(Query D5: MEETINGS for overlaps)]
+    QConflict --> CheckConflict{Conflict found?}
+    CheckConflict -- Yes --> Err2[/Return Error: Slot booked/]
+    CheckConflict -- No --> InitMeet[Initialize meeting_record]
+    InitMeet --> InsertD5[(Insert into D5: MEETINGS)]
+    InsertD5 --> SetSch[Set notification_type = Scheduled]
+    
+    CheckAction -- "Cancel" --> QMeeting[(Query D5: MEETINGS for meeting_id)]
+    QMeeting --> CheckValid{Meeting found & owned by TIC?}
+    CheckValid -- No --> Err3[/Return Error: Invalid reference/]
+    CheckValid -- Yes --> UpdateMeet[Set status = Cancelled]
+    UpdateMeet --> UpdateD5[(Update D5: MEETINGS)]
+    UpdateD5 --> SetCan[Set notification_type = Cancelled]
+    
+    SetSch --> InitAudit
+    SetCan --> InitAudit
+    
+    InitAudit[Initialize audit_record] --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
+    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    Notif --> Output[/Return Success/]
+    
+    Output --> End([End])
+    Err1 --> End
+    Err2 --> End
+    Err3 --> End

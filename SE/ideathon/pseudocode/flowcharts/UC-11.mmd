@@ -1,0 +1,19 @@
+flowchart TD
+    Start([Start: TICViewAssignedQueries]) --> Input[/Input: tic_id/]
+    Input --> QUsers[(Query USERS & ROLE Tables)]
+    QUsers --> CheckRole{Role == TIC?}
+    
+    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
+    CheckRole -- Yes --> QQueries[(Query D3: QUERIES where assigned_tic = tic_id)]
+    QQueries --> Sort[Sort by updated_at descending]
+    Sort --> LoopStart{More queries to process?}
+    
+    LoopStart -- Yes --> QStudent[(Query USERS: student_id)]
+    QStudent --> Combine[Combine query + student details]
+    Combine --> InsertList[Insert into tic_dashboard_view]
+    InsertList --> LoopStart
+    
+    LoopStart -- No --> Output[/Return Success: tic_dashboard_view/]
+    Output --> End([End])
+    
+    Err1 --> End

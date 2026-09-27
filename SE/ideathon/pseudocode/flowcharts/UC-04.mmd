@@ -1,0 +1,20 @@
+flowchart TD
+    Start([Start: LoadStudentDashboard]) --> Input[/Input: student_id/]
+    Input --> CheckEmpty{student_id empty?}
+    
+    CheckEmpty -- Yes --> Err1[/Return Error: Invalid identity/]
+    
+    CheckEmpty -- No --> QQueries[(Query D3: QUERIES)]
+    QQueries --> Sort[Sort by updated_at descending]
+    Sort --> LoopStart{More queries to process?}
+    
+    LoopStart -- Yes --> QDocs[(Query D4: DOCUMENTS)]
+    QDocs --> QMeetings[(Query D5: MEETINGS)]
+    QMeetings --> Combine[Combine into compiled_record]
+    Combine --> InsertList[Insert into dashboard_view]
+    InsertList --> LoopStart
+    
+    LoopStart -- No --> Output[/Return Success: dashboard_view/]
+    Output --> End([End])
+    
+    Err1 --> End

@@ -1,0 +1,16 @@
+1: procedure AdminViewNewQueries(admin_id)
+2:     user_record <- query USERS table where user_id = admin_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name != "Admin" then
+5:         return error "Unauthorized access. Admin privileges required."
+6:     end if
+7:     escalated_queries <- query D3_QUERIES where status = "Open"
+8:     sort escalated_queries by created_at ascending
+9:     admin_dashboard_view <- empty list
+10:    for each query_record in escalated_queries do
+11:        student_record <- query USERS table where user_id = query_record.student_id
+12:        ticket_display <- combine(query_record, student_record.name, student_record.department)
+13:        insert ticket_display into admin_dashboard_view
+14:    end for
+15:    return success "Admin queue loaded", admin_dashboard_view
+16: end procedure

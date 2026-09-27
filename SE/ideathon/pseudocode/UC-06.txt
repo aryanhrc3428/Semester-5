@@ -1,0 +1,52 @@
+1: procedure KnowledgeBaseManagement(admin_id, action_type, entry_data)
+2:     user_record <- query USERS table where user_id = admin_id
+3:     role_record <- query ROLE table where role_id = user_record.role_id
+4:     if role_record.role_name not in ("Admin", "Authorized TIC") then
+5:         return error "Unauthorized modification attempt"
+6:     end if
+7:     current_time <- get system time
+8:     if action_type = "Create" then
+9:         if entry_data.title is empty or entry_data.content is empty then
+10:            return error "Incomplete Knowledge Base entry"
+11:        end if
+12:        new_kb_id <- generate unique ID
+13:        embedding_vector <- call GeminiAPI_GenerateEmbedding(entry_data.content)
+14:        kb_record <- initialize new record
+15:        kb_record.kb_id <- new_kb_id
+16:        kb_record.title <- entry_data.title
+17:        kb_record.content <- entry_data.content
+18:        kb_record.category <- entry_data.category
+19:        kb_record.source <- entry_data.source
+20:        kb_record.verification_status <- "Verified"
+21:        kb_record.validity_status <- "Active"
+22:        kb_record.embedding <- embedding_vector
+23:        kb_record.created_by <- admin_id
+24:        kb_record.created_at <- current_time
+25:        insert kb_record into D2_KNOWLEDGE table
+26:        return success "Knowledge Base entry created and embedded", new_kb_id
+1:     else if action_type = "Update" then
+2:         existing_entry <- query D2_KNOWLEDGE where kb_id = entry_data.kb_id
+3:         if existing_entry is empty then
+4:             return error "Entry not found"
+5:         end if
+6:         if entry_data.content is modified then
+7:             existing_entry.embedding <- call GeminiAPI_GenerateEmbedding(entry_data.content)
+8:             existing_entry.content <- entry_data.content
+9:         end if
+10:        existing_entry.title <- entry_data.title
+11:        existing_entry.verification_status <- entry_data.verification_status
+12:        existing_entry.validity_status <- entry_data.validity_status
+13:        existing_entry.updated_at <- current_time
+14:        update D2_KNOWLEDGE with existing_entry
+15:        return success "Knowledge Base entry updated", entry_data.kb_id
+1:     else if action_type = "Deactivate" then
+2:         target_entry <- query D2_KNOWLEDGE where kb_id = entry_data.kb_id
+3:         if target_entry is empty then
+4:             return error "Entry not found"
+5:         end if
+6:         target_entry.validity_status <- "Inactive"
+7:         target_entry.updated_at <- current_time
+8:         update D2_KNOWLEDGE with target_entry
+9:         return success "Knowledge Base entry deactivated", entry_data.kb_id
+10:    end if
+11: end procedure
