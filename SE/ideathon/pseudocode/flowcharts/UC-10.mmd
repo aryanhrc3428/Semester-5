@@ -1,26 +1,64 @@
-flowchart TD
-    Start([Start: ForwardQueryToTIC]) --> Input[/Input: admin_id, query_id, tic_id/]
-    Input --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == Admin?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
-    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    1((1)) --> 3((3))
     
-    QQuery --> CheckFound{Query found?}
-    CheckFound -- No --> Err2[/Return Error: Invalid query reference/]
-    CheckFound -- Yes --> QTIC[(Query USERS & ROLE for tic_id)]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    QTIC --> CheckTIC{Valid TIC reference?}
-    CheckTIC -- No --> Err3[/Return Error: Invalid TIC reference/]
-    CheckTIC -- Yes --> UpdateFields[Update assigned_tic & status]
-    UpdateFields --> UpdateDB[(Update D3: QUERIES)]
-    UpdateDB --> InitAudit[Initialize audit_record]
-    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
-    InsertAudit --> Notif[Call DispatchNotificationAsync: TIC]
+    6 -- T --> 7((7))
+    6 -- F --> 11((11))
     
-    Notif --> Output[/Return Success/]
-    Output --> End([End])
+    11 -- try --> 14((14))
+    11 -- catch --> 17((17))
     
-    Err1 --> End
-    Err2 --> End
-    Err3 --> End
+    14 -- T --> 15((15))
+    14 -- F --> 23((23))
+    
+    17 --> 19((19))
+    
+    23 -- try --> 26((26))
+    23 -- catch --> 32((32))
+    
+    26 -- T --> 27((27))
+    26 -- F --> 29((29))
+    
+    29 -- T --> 30((30))
+    29 -- F --> 38((38))
+    
+    32 --> 34((34))
+    
+    38 -- try --> 41((41))
+    38 -- catch --> 44((44))
+    
+    41 -- T --> 42((42))
+    41 -- F --> 51((51))
+    
+    44 --> 46((46))
+    
+    51 -- try --> 52((52))
+    51 -- catch --> 61((61))
+    
+    52 --> 68((68))
+    
+    61 --> 64((64))
+    
+    68 -- try --> 69((69))
+    68 -- catch --> 70((70))
+    
+    69 --> 74((74))
+    70 --> 74
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 76((76))
+    7 --> 76
+    15 --> 76
+    19 --> 76
+    27 --> 76
+    30 --> 76
+    34 --> 76
+    42 --> 76
+    46 --> 76
+    64 --> 76
+    74 --> 76

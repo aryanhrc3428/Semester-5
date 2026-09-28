@@ -1,19 +1,57 @@
-flowchart TD
-    Start([Start: AdminViewNewQueries]) --> Input[/Input: admin_id/]
-    Input --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == Admin?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
-    CheckRole -- Yes --> QQueries[(Query D3: QUERIES where status = Open)]
-    QQueries --> Sort[Sort by created_at ascending]
-    Sort --> LoopStart{More queries to process?}
+    1((1)) --> 3((3))
     
-    LoopStart -- Yes --> QStudent[(Query USERS: student_id)]
-    QStudent --> Combine[Combine query + student details]
-    Combine --> InsertList[Insert into admin_dashboard_view]
-    InsertList --> LoopStart
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    LoopStart -- No --> Output[/Return Success: admin_dashboard_view/]
-    Output --> End([End])
+    6 -- T --> 7((7))
+    6 -- F --> 11((11))
     
-    Err1 --> End
+    11 -- try --> 14((14))
+    11 -- catch --> 20((20))
+    
+    14 -- T --> 15((15))
+    14 -- F --> 17((17))
+    
+    17 -- T --> 18((18))
+    17 -- F --> 27((27))
+    
+    20 --> 22((22))
+    
+    27 -- try --> 37((37))
+    27 -- catch --> 31((31))
+    
+    31 --> 33((33))
+    
+    37 -- T --> 38((38))
+    37 -- F --> 43((43))
+    
+    43 -- T --> 48((48))
+    43 -- F (Loop End) --> 73((73))
+    
+    48 -- try --> 51((51))
+    48 -- catch --> 58((58))
+    
+    51 -- T --> 52((52))
+    51 -- F --> 55((55))
+    
+    52 --> 70((70))
+    55 --> 70
+    
+    58 --> 60((60))
+    60 --> 70
+    
+    70 --> 43
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 74((74))
+    7 --> 74
+    15 --> 74
+    18 --> 74
+    22 --> 74
+    33 --> 74
+    38 --> 74
+    73 --> 74

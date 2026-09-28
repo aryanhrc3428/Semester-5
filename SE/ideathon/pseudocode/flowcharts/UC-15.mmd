@@ -1,28 +1,74 @@
-flowchart TD
-    Start([Start: ViewTimetableAvailability]) --> Input[/Input: tic_id, target_date/]
-    Input --> CheckEmpty{Inputs empty?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckEmpty -- Yes --> Err1[/Return Error: Inputs required/]
-    CheckEmpty -- No --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == TIC?}
+    1((1)) --> 3((3))
     
-    CheckRole -- No --> Err2[/Return Error: Invalid TIC/]
-    CheckRole -- Yes --> FetchExt[Call ExternalTimetableService_Fetch]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    FetchExt --> CheckExt{base_schedule empty?}
-    CheckExt -- Yes --> OutEmpty[/Return Success: empty list/]
+    6 -- T --> 7((7))
+    6 -- F --> 10((10))
     
-    CheckExt -- No --> QMeetings[(Query D5: MEETINGS for booked slots)]
-    QMeetings --> LoopStart{More slots in base_schedule?}
+    10 -- T --> 11((11))
+    10 -- F --> 15((15))
     
-    LoopStart -- Yes --> LoopCheck{Conflict with booked_meetings?}
-    LoopCheck -- Yes --> LoopStart
-    LoopCheck -- No --> AddSlot[Insert slot into available_slots]
-    AddSlot --> LoopStart
+    15 -- try --> 18((18))
+    15 -- catch --> 21((21))
     
-    LoopStart -- No --> Output[/Return Success: available_slots/]
+    18 -- T --> 19((19))
+    18 -- F --> 28((28))
     
-    Output --> End([End])
-    OutEmpty --> End
-    Err1 --> End
-    Err2 --> End
+    21 --> 23((23))
+    
+    28 -- try --> 30((30))
+    28 -- catch --> 34((34))
+    
+    30 -- T --> 31((31))
+    30 -- F --> 40((40))
+    
+    34 --> 36((36))
+    
+    40 -- T --> 41((41))
+    40 -- F --> 46((46))
+    
+    46 -- try --> 49((49))
+    49 -- catch --> 52((52))
+    
+    49 --> 58((58))
+    
+    52 --> 54((54))
+    
+    %% Nested Overlap Calculation Loops
+    58 -- T --> 59((59))
+    58 -- F (Loop End) --> 78((78))
+    
+    59 -- T --> 62((62))
+    59 -- F --> 58
+    
+    62 -- T --> 66((66))
+    62 -- F (Loop End) --> 73((73))
+    
+    66 -- T --> 68((68))
+    66 -- F --> 62
+    
+    68 --> 73
+    
+    73 -- T --> 74((74))
+    73 -- F --> 58
+    
+    74 --> 58
+    
+    78 --> 79((79))
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 80((80))
+    7 --> 80
+    11 --> 80
+    19 --> 80
+    23 --> 80
+    31 --> 80
+    36 --> 80
+    41 --> 80
+    54 --> 80
+    79 --> 80

@@ -1,32 +1,88 @@
-flowchart TD
-    Start([Start: TICReviewDocument]) --> Input[/Input: tic_id, query_id, doc_id, decision, notes/]
-    Input --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == TIC?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
-    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
-    QQuery --> QDoc[(Query D4: DOCUMENTS)]
+    1((1)) --> 3((3))
     
-    QDoc --> CheckValid{Query owner & Doc found?}
-    CheckValid -- No --> Err2[/Return Error: Invalid reference/]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    CheckValid -- Yes --> CheckDecision{review_decision?}
+    6 -- T --> 7((7))
+    6 -- F --> 13((13))
     
-    CheckDecision -- "Accept" --> AcceptFields[Set Doc Verified, Query Assigned]
-    AcceptFields --> TypeAcc[notification_type = Accepted]
+    13 -- T --> 14((14))
+    13 -- F (Loop End) --> 19((19))
     
-    CheckDecision -- "Reject" --> RejectFields[Set Doc Rejected, Query Docs Req]
-    RejectFields --> TypeRej[notification_type = Rejected]
+    14 -- T (Break) --> 19
+    14 -- F --> 13
     
-    TypeAcc --> UpdateDB[(Update D4 & D3)]
-    TypeRej --> UpdateDB
+    19 -- T --> 20((20))
+    19 -- F --> 24((24))
     
-    UpdateDB --> InitAudit[Initialize audit_record]
-    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
-    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    24 -- T --> 25((25))
+    24 -- F --> 29((29))
     
-    Notif --> Output[/Return Success/]
-    Output --> End([End])
+    29 -- try --> 32((32))
+    29 -- catch --> 35((35))
     
-    Err1 --> End
-    Err2 --> End
+    32 -- T --> 33((33))
+    32 -- F --> 41((41))
+    
+    35 --> 37((37))
+    
+    41 -- try --> 45((45))
+    41 -- catch --> 61((61))
+    
+    45 -- T --> 46((46))
+    45 -- F --> 48((48))
+    
+    48 -- T --> 49((49))
+    48 -- F --> 55((55))
+    
+    55 -- T --> 56((56))
+    55 -- F --> 58((58))
+    
+    58 -- T --> 59((59))
+    58 -- F --> 70((70))
+    
+    61 --> 63((63))
+    
+    70 -- try --> 73((73))
+    70 -- catch --> 95((95))
+    
+    %% Accept/Reject Branching
+    73 -- T --> 74((74))
+    73 -- F --> 81((81))
+    
+    74 --> 91((91))
+    
+    81 -- T --> 82((82))
+    
+    82 --> 91
+    
+    91 --> 102((102))
+    
+    95 --> 98((98))
+    
+    102 -- try --> 103((103))
+    102 -- catch --> 104((104))
+    
+    103 --> 108((108))
+    
+    104 --> 105((105))
+    105 --> 108
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 109((109))
+    7 --> 109
+    20 --> 109
+    25 --> 109
+    33 --> 109
+    37 --> 109
+    46 --> 109
+    49 --> 109
+    56 --> 109
+    59 --> 109
+    63 --> 109
+    98 --> 109
+    108 --> 109

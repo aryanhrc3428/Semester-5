@@ -1,33 +1,94 @@
-flowchart TD
-    Start([Start: ManageMeeting]) --> Input[/Input: tic_id, action_type, meeting_data/]
-    Input --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == TIC?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
-    CheckRole -- Yes --> CheckAction{action_type?}
+    1((1)) --> 3((3))
     
-    CheckAction -- "Schedule" --> QConflict[(Query D5: MEETINGS for overlaps)]
-    QConflict --> CheckConflict{Conflict found?}
-    CheckConflict -- Yes --> Err2[/Return Error: Slot booked/]
-    CheckConflict -- No --> InitMeet[Initialize meeting_record]
-    InitMeet --> InsertD5[(Insert into D5: MEETINGS)]
-    InsertD5 --> SetSch[Set notification_type = Scheduled]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    CheckAction -- "Cancel" --> QMeeting[(Query D5: MEETINGS for meeting_id)]
-    QMeeting --> CheckValid{Meeting found & owned by TIC?}
-    CheckValid -- No --> Err3[/Return Error: Invalid reference/]
-    CheckValid -- Yes --> UpdateMeet[Set status = Cancelled]
-    UpdateMeet --> UpdateD5[(Update D5: MEETINGS)]
-    UpdateD5 --> SetCan[Set notification_type = Cancelled]
+    6 -- T --> 7((7))
+    6 -- F --> 10((10))
     
-    SetSch --> InitAudit
-    SetCan --> InitAudit
+    10 -- T --> 13((13))
+    10 -- F (Loop End) --> 19((19))
     
-    InitAudit[Initialize audit_record] --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
-    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
-    Notif --> Output[/Return Success/]
+    13 -- T (Break) --> 19
+    13 -- F --> 10
     
-    Output --> End([End])
-    Err1 --> End
-    Err2 --> End
-    Err3 --> End
+    19 -- T --> 20((20))
+    19 -- F --> 23((23))
+    
+    23 -- try --> 26((26))
+    23 -- catch --> 30((30))
+    
+    26 -- T --> 27((27))
+    26 -- F --> 40((40))
+    
+    30 --> 32((32))
+    
+    %% Branch A: Schedule Meeting
+    40 -- T --> 41((41))
+    41 -- T --> 43((43))
+    41 -- F --> 46((46))
+    
+    46 -- try --> 48((48))
+    46 -- catch --> 77((77))
+    
+    48 -- T --> 50((50))
+    50 -- T --> 57((57))
+    50 -- F --> 60((60))
+    
+    57 -- T --> 61((61))
+    57 -- F --> 64((64))
+    
+    64 --> 68((68))
+    
+    77 --> 79((79))
+    
+    %% Branch B: Cancel Meeting
+    40 -- F --> 84((84))
+    
+    84 -- T --> 85((85))
+    85 -- T --> 86((86))
+    85 -- F --> 90((90))
+    
+    90 -- try --> 92((92))
+    90 -- catch --> 119((119))
+    
+    92 -- T --> 95((95))
+    95 -- T --> 98((98))
+    98 -- T --> 101((101))
+    101 -- T --> 107((107))
+    
+    107 --> 112((112))
+    
+    119 --> 121((121))
+    
+    %% Convergence to Async Notification
+    68 --> 126((126))
+    79 --> 126
+    112 --> 126
+    121 --> 126
+    
+    126 -- try --> 127((127))
+    126 -- catch --> 129((129))
+    
+    127 --> 133((133))
+    129 --> 130((130))
+    130 --> 133
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 134((134))
+    7 --> 134
+    20 --> 134
+    27 --> 134
+    32 --> 134
+    43 --> 134
+    60 --> 134
+    61 --> 134
+    79 --> 134
+    86 --> 134
+    107 -- F (Error) --> 134
+    121 --> 134
+    133 --> 134

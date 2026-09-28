@@ -1,26 +1,64 @@
-flowchart TD
-    Start([Start: TICRequestDocument]) --> Input[/Input: tic_id, query_id, doc_note/]
-    Input --> QUsers[(Query USERS & ROLE Tables)]
-    QUsers --> CheckRole{Role == TIC?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckRole -- No --> Err1[/Return Error: Unauthorized/]
-    CheckRole -- Yes --> QQuery[(Query D3: QUERIES)]
+    1((1)) --> 3((3))
     
-    QQuery --> CheckOwner{Query found & assigned to TIC?}
-    CheckOwner -- No --> Err2[/Return Error: Invalid/Unauthorized query/]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    CheckOwner -- Yes --> CheckNote{doc_note empty?}
-    CheckNote -- Yes --> Err3[/Return Error: Cannot be empty/]
+    6 -- T --> 7((7))
+    6 -- F --> 9((9))
     
-    CheckNote -- No --> UpdateFields[Update status = Documents Required & note]
-    UpdateFields --> UpdateDB[(Update D3: QUERIES)]
-    UpdateDB --> InitAudit[Initialize audit_record]
-    InitAudit --> InsertAudit[(Insert into D7: AUDIT_LOGS)]
-    InsertAudit --> Notif[Call DispatchNotificationAsync: Student]
+    9 -- T --> 10((10))
+    9 -- F --> 14((14))
     
-    Notif --> Output[/Return Success/]
-    Output --> End([End])
+    14 -- try --> 17((17))
+    14 -- catch --> 20((20))
     
-    Err1 --> End
-    Err2 --> End
-    Err3 --> End
+    17 -- T --> 18((18))
+    17 -- F --> 26((26))
+    
+    20 --> 22((22))
+    
+    26 -- try --> 30((30))
+    26 -- catch --> 41((41))
+    
+    30 -- T --> 31((31))
+    30 -- F --> 34((34))
+    
+    34 -- T --> 35((35))
+    34 -- F --> 38((38))
+    
+    38 -- T --> 39((39))
+    38 -- F --> 48((48))
+    
+    41 --> 43((43))
+    
+    48 -- try --> 49((49))
+    48 -- catch --> 59((59))
+    
+    49 --> 66((66))
+    
+    59 --> 62((62))
+    
+    66 -- try --> 67((67))
+    66 -- catch --> 68((68))
+    
+    67 --> 72((72))
+    
+    68 --> 69((69))
+    69 --> 72
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 73((73))
+    7 --> 73
+    10 --> 73
+    18 --> 73
+    22 --> 73
+    31 --> 73
+    35 --> 73
+    39 --> 73
+    43 --> 73
+    62 --> 73
+    72 --> 73

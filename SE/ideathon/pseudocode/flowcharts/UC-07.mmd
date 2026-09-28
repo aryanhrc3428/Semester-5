@@ -1,27 +1,82 @@
-flowchart TD
-    Start([Start: DispatchNotificationAsync]) --> Input[/Input: target, event, reference_id/]
-    Input --> CheckEmpty{Target/Event empty?}
+graph TD
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    CheckEmpty -- Yes --> Err1[/Return Error: Invalid parameters/]
-    CheckEmpty -- No --> CheckTarget{Is target a Role?}
+    1((1)) --> 3((3))
     
-    CheckTarget -- Yes --> QRoleUsers[(Query USERS by Role)]
-    QRoleUsers --> AddRoleEmails[Insert into recipient_emails]
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
     
-    CheckTarget -- No --> QUser[(Query USERS by ID)]
-    QUser --> AddUserEmail[Insert into recipient_emails]
+    6 -- T --> 7((7))
+    6 -- F --> 13((13))
     
-    AddRoleEmails --> Builder[Call TemplateBuilder]
-    AddUserEmail --> Builder
+    13 -- T --> 14((14))
+    13 -- F (Loop End) --> 19((19))
     
-    Builder --> LoopStart{More recipients?}
+    14 -- T (Break) --> 19
+    14 -- F --> 13
     
-    LoopStart -- Yes --> Resend[Call ResendAPI_SendEmail]
-    Resend --> InitLog[Initialize log_record]
-    InitLog --> InsertLog[(Insert into D7: AUDIT_LOGS)]
-    InsertLog --> LoopStart
+    19 -- T --> 20((20))
+    19 -- F --> 25((25))
     
-    LoopStart -- No --> Output[/Return Success/]
-    Output --> End([End])
+    25 -- try --> 27((27))
+    25 -- catch --> 48((48))
     
-    Err1 --> End
+    48 --> 50((50))
+    
+    %% Target Role vs User ID Branching
+    27 -- T --> 30((30))
+    27 -- F --> 42((42))
+    
+    30 -- T --> 32((32))
+    30 -- F --> 34((34))
+    
+    32 --> 37((37))
+    34 --> 37
+    
+    37 -- T --> 38((38))
+    37 -- F (Loop End) --> 53((53))
+    
+    38 --> 37
+    
+    42 --> 44((44))
+    
+    44 -- T --> 45((45))
+    44 -- F --> 53
+    
+    45 --> 53
+    
+    53 -- T --> 54((54))
+    53 -- F --> 66((66))
+    
+    %% Main Dispatch Loop with Nested Error Handling
+    66 -- T --> 67((67))
+    66 -- F (Loop End) --> 90((90))
+    
+    67 -- try --> 70((70))
+    67 -- catch --> 84((84))
+    
+    70 -- T --> 74((74))
+    70 -- F --> 81((81))
+    
+    74 -- try --> 76((76))
+    74 -- catch --> 77((77))
+    
+    76 --> 66
+    77 --> 66
+    
+    81 --> 66
+    84 --> 66
+    
+    %% Post-Loop Verification
+    90 -- T --> 91((91))
+    90 -- F --> 93((93))
+    
+    %% Terminal error returns and catches syncing to the final end node
+    4 --> 95((95))
+    7 --> 95
+    20 --> 95
+    50 --> 95
+    54 --> 95
+    91 --> 95
+    93 --> 95
