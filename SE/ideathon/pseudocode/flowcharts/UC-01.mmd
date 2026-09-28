@@ -1,82 +1,67 @@
 graph TD
-    %% Column 1: Logical Flow 1-13 (Validation)
-    subgraph Column_1 [" "]
-        direction TB
-        n1((1)) -- F --> n2((2))
-        n1 -- T --> e3((3)):::return
-        
-        n2 -- F --> n4((4))
-        n2 -- T --> e5((5)):::return
-
-        n4 -- F --> n6((6))
-        n4 -- T --> e7((7)):::return
-
-        n6 -- F --> n11((11))
-        n6 -- T --> e12((12)):::return
-
-        n11 --> n13((13))
-        n13 --> n11
-    end
-
-    %% Connection from Column 1 to Column 2
-    n13 -- F (Loop End) --> n14((14))
-
-    %% Column 2: Logical Flow 14-27 (External Call)
-    subgraph Column_2 [" "]
-        direction TB
-        n14 -- T --> n15((15))
-        n15 --> n17((17))
-        
-        %% Try Block
-        n17 -- "try" --> n18((18))
-        n18 -- T --> e19((19)):::success
-        n18 -- F --> e20((20))
-        e20 --> n23((23))
-
-        %% Catch Block
-        n17 -- "catch" --> e22((22))
-        e22 --> n23
-
-        n23 --> n26((26))
-        n26 -- F --> n27((27))
-        n26 -- T --> e19
-        
-        %% Re-loop link
-        n27 --> n14
-    end
-
-    %% Connection from Column 2 to Column 3
-    n14 -- F (Retry Fail) --> n28((28))
-
-    %% Column 3: Logical Flow 28-37 (Database & Final)
-    subgraph Column_3 [" "]
-        direction TB
-        %% Main path
-        n28 --> n29((29))
-        n29 -- "try" --> n30((30))
-        n30 -- T --> n32((32))
-        n32 -- T --> n33((33))
-        n33 --> e36((36)):::success
-
-        %% Success path exit point
-        e36 --> e37((37)):::exit
-
-        %% DB Catch path
-        n32 -- F --> n34((34))
-        n30 -- F --> n34((34))
-        n29 -- "catch" --> n34((34))
-        n34 -- T --> n35((35))
-        n35 --> e37
-        n34 -- F --> e37
-    end
+    %% Base styling matching the reference CFG style
+    classDef default fill:#efecff,stroke:#a3a3d1,stroke-width:1.5px,color:#000;
     
-    %% Connections for early returns to exit
-    e3 --> e37
-    e5 --> e37
-    e7 --> e37
-    e12 --> e37
-    e19 --> e37
-
-    style Column_1 fill:none, stroke:none
-    style Column_2 fill:none, stroke:none
-    style Column_3 fill:none, stroke:none
+    1((1)) --> 3((3))
+    
+    3 -- T --> 4((4))
+    3 -- F --> 6((6))
+    
+    6 -- T --> 7((7))
+    6 -- F --> 11((11))
+    
+    11 -- T --> 12((12))
+    11 -- F --> 17((17))
+    
+    17 -- T --> 18((18))
+    17 -- F (Loop End) --> 27((27))
+    
+    18 -- T --> 19((19))
+    18 -- F --> 17
+    
+    27 -- T --> 29((29))
+    27 -- F (Loop End) --> 41((41))
+    
+    29 -- try --> 30((30))
+    29 -- catch --> 36((36))
+    
+    30 -- T --> 31((31))
+    30 -- F --> 34((34))
+    
+    31 --> 32((32))
+    32 --> 27
+    
+    34 --> 27
+    36 --> 27
+    
+    41 -- T --> 42((42))
+    41 -- F --> 46((46))
+    
+    46 -- try --> 47((47))
+    46 -- catch --> 65((65))
+    
+    47 --> 49((49))
+    
+    49 -- T --> 50((50))
+    49 -- F --> 53((53))
+    
+    53 --> 55((55))
+    
+    55 -- T --> 56((56))
+    55 -- F --> 60((60))
+    
+    60 --> 63((63))
+    
+    65 --> 66((66))
+    66 --> 67((67))
+    
+    %% Terminal Sinks merging to Node 69
+    4 --> 69((69))
+    7 --> 69
+    12 --> 69
+    19 --> 69
+    42 --> 69
+    50 --> 69
+    56 --> 69
+    63 --> 69
+    67 --> 69
