@@ -1,53 +1,134 @@
 1: procedure ManageMeeting(tic_id, action_type, meeting_data)
-2:     user_record <- query USERS table where user_id = tic_id
-3:     role_record <- query ROLE table where role_id = user_record.role_id
-4:     if role_record.role_name != "TIC" then
-5:         return error "Unauthorized access. TIC privileges required."
-6:     end if
-7:     current_time <- get system time
-8:     if action_type = "Schedule" then
-9:         conflict_check <- query D5_MEETINGS where tic_id = tic_id and date = meeting_data.date and start_time = meeting_data.start_time and status = "Scheduled"
-10:        if conflict_check is not empty then
-11:            return error "Time slot is already booked"
-12:        end if
-13:        new_meeting_id <- generate unique ID
-14:        meeting_record <- initialize new record
-15:        meeting_record.meeting_id <- new_meeting_id
-16:        meeting_record.query_id <- meeting_data.query_id
-17:        meeting_record.tic_id <- tic_id
-18:        meeting_record.student_id <- meeting_data.student_id
-19:        meeting_record.date <- meeting_data.date
-20:        meeting_record.start_time <- meeting_data.start_time
-21:        meeting_record.end_time <- meeting_data.end_time
-22:        meeting_record.status <- "Scheduled"
-23:        meeting_record.created_at <- current_time
-24:        insert meeting_record into D5_MEETINGS table
-25:        log_entity_id <- new_meeting_id
-26:        notification_type <- "Meeting Scheduled"
-27:        success_msg <- "Meeting successfully scheduled"
-28:        target_student <- meeting_data.student_id
-29:    else if action_type = "Cancel" then
-30:        target_meeting <- query D5_MEETINGS where meeting_id = meeting_data.meeting_id
-31:        if target_meeting is empty or target_meeting.tic_id != tic_id then
-32:            return error "Invalid or unauthorized meeting reference"
-33:        end if
-34:        target_meeting.status <- "Cancelled"
-35:        target_meeting.updated_at <- current_time
-36:        update D5_MEETINGS with target_meeting
-37:        log_entity_id <- meeting_data.meeting_id
-38:        notification_type <- "Meeting Cancelled"
-39:        success_msg <- "Meeting successfully cancelled"
-40:        target_student <- target_meeting.student_id
-41:    else
-42:        return error "Invalid action type"
-43:    end if
-44:    audit_record <- initialize new audit log
-45:    audit_record.user_id <- tic_id
-46:    audit_record.action_type <- action_type
-47:    audit_record.entity <- "Meeting"
-48:    audit_record.entity_id <- log_entity_id
-49:    audit_record.timestamp <- current_time
-50:    insert audit_record into D7_AUDIT_LOGS table
-51:    call DispatchNotificationAsync(target_student, notification_type, log_entity_id)
-52:    return success success_msg, log_entity_id
-53: end procedure
+2:     // 1. Initial Type and Null Validation
+3:     if tic_id is null or action_type is null or meeting_data is null then
+4:         return error "Validation Failed: Core parameters cannot be null"
+5:     end if
+6:     if typeof(tic_id) != "string" or typeof(action_type) != "string" or typeof(meeting_data) != "dictionary" then
+7:         return error "Validation Failed: Invalid parameter data types"
+8:     end if
+9:
+10:    // 2. Explicit Action Type Validation Loop
+11:    valid_actions <- array of strings {"Schedule", "Cancel"}
+12:    is_valid_action <- false
+13:    for i <- 0 to length(valid_actions) - 1 do
+14:        if action_type = valid_actions[i] then
+15:            is_valid_action <- true
+16:            break
+17:        end if
+18:    end for
+19:    if is_valid_action = false then
+20:        return error "Validation Failed: Action must be 'Schedule' or 'Cancel'"
+21:    end if
+22:
+23:    // 3. Strict Role-Based Access Control (RBAC) Validation
+24:    try
+25:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+26:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+27:        if role_record is empty or role_record.role_name != "TIC" then
+28:            return error "Security Error: Unauthorized access. TIC privileges required."
+29:        end if
+30:    catch DatabaseException as db_err
+31:        logError(db_err)
+32:        return error "System Error: Unable to validate permissions"
+33:    end try
+34:
+35:    current_time <- getSystemTimestamp()
+36:    student_id_target <- null
+37:    reference_id <- null
+38:    notification_type <- ""
+39:
+40:    // 4. Branch A: Schedule Meeting
+41:    if action_type = "Schedule" then
+42:        if meeting_data["query_id"] is null or meeting_data["date"] is null or meeting_data["start_time"] is null or meeting_data["end_time"] is null then
+43:            return error "Validation Failed: Incomplete meeting scheduling data"
+44:        end if
+45:        
+46:        try
+47:            // Verify Query Ownership (IDOR Prevention)
+48:            query_check <- "SELECT assigned_tic, student_id FROM D3_QUERIES WHERE query_id = ?"
+49:            target_query <- executeParameterizedQuery(query_check, [meeting_data["query_id"]])
+50:            if target_query is empty or target_query.assigned_tic != tic_id then
+51:                return error "Security Error: Cannot schedule meeting for an unassigned or invalid query"
+52:            end if
+53:            student_id_target <- target_query.student_id
+54:            
+55:            // Concurrency Control: Double-Booking Prevention at Database Level
+56:            // Overlap Math: (existing_start < new_end) AND (existing_end > new_start)
+57:            overlap_check <- "SELECT meeting_id FROM D5_MEETINGS WHERE assigned_tic = ? AND meeting_date = ? AND status != ? AND start_time < ? AND end_time > ?"
+58:            conflict_record <- executeParameterizedQuery(overlap_check, [tic_id, meeting_data["date"], "Cancelled", meeting_data["end_time"], meeting_data["start_time"]])
+59:            
+60:            if conflict_record is not empty then
+61:                return error "Concurrency Error: Time slot has already been booked (Race Condition Prevented)"
+62:            end if
+63:            
+64:            // Transaction: Insert Meeting and Audit
+65:            reference_id <- generateSecureUUID()
+66:            beginTransaction()
+67:            
+68:            insert_meeting <- "INSERT INTO D5_MEETINGS (meeting_id, query_id, assigned_tic, student_id, meeting_date, start_time, end_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+69:            executeParameterizedInsert(insert_meeting, [reference_id, meeting_data["query_id"], tic_id, student_id_target, meeting_data["date"], meeting_data["start_time"], meeting_data["end_time"], "Scheduled", current_time])
+70:            
+71:            insert_audit <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+72:            executeParameterizedInsert(insert_audit, [tic_id, "Schedule Meeting", "Meeting", reference_id, current_time])
+73:            
+74:            commitTransaction()
+75:            notification_type <- "Meeting Scheduled"
+76:            
+77:        catch DatabaseException as db_err
+78:            rollbackTransaction()
+79:            logError(db_err)
+80:            return error "Database Error: Failed to schedule meeting safely"
+81:        end try
+82:
+83:    // 5. Branch B: Cancel Meeting
+84:    else if action_type = "Cancel" then
+85:        if meeting_data["meeting_id"] is null then
+86:            return error "Validation Failed: Meeting ID required for cancellation"
+87:        end if
+88:        reference_id <- meeting_data["meeting_id"]
+89:        
+90:        try
+91:            // Verify Meeting Ownership and State (IDOR Prevention)
+92:            meeting_check <- "SELECT assigned_tic, student_id, status FROM D5_MEETINGS WHERE meeting_id = ?"
+93:            target_meeting <- executeParameterizedQuery(meeting_check, [reference_id])
+94:            
+95:            if target_meeting is empty then
+96:                return error "Database Error: Meeting reference not found"
+97:            end if
+98:            if target_meeting.assigned_tic != tic_id then
+99:                return error "Security Error: Unauthorized attempt to cancel another TIC's meeting"
+100:           end if
+101:           if target_meeting.status = "Cancelled" then
+102:               return error "State Error: Meeting is already cancelled"
+103:           end if
+104:           
+105:           student_id_target <- target_meeting.student_id
+106:           
+107:           // Transaction: Update Meeting and Audit
+108:           beginTransaction()
+109:           
+110:           cancel_update <- "UPDATE D5_MEETINGS SET status = ?, updated_at = ? WHERE meeting_id = ?"
+111:           executeParameterizedUpdate(cancel_update, ["Cancelled", current_time, reference_id])
+112:           
+113:           insert_audit <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+114:           executeParameterizedInsert(insert_audit, [tic_id, "Cancel Meeting", "Meeting", reference_id, current_time])
+115:           
+116:           commitTransaction()
+117:           notification_type <- "Meeting Cancelled"
+118:           
+119:       catch DatabaseException as db_err
+120:           rollbackTransaction()
+121:           logError(db_err)
+122:           return error "Database Error: Failed to cancel meeting safely"
+123:       end try
+124:   end if
+125:
+126:   // 6. Fire-and-Forget Asynchronous Notification
+127:   try
+128:       call DispatchNotificationAsync(student_id_target, notification_type, reference_id)
+129:   catch NetworkException as net_err
+130:       logError("Warning: Failed to dispatch meeting notification to student for meeting " + reference_id)
+131:   end try
+132:
+133:   return success concat("Meeting successfully ", action_type, "d"), reference_id
+134: end procedure

@@ -1,43 +1,109 @@
-1: procedure TICReviewDocument(tic_id, query_id, document_id, review_decision, review_notes)
-2:     user_record <- query USERS table where user_id = tic_id
-3:     role_record <- query ROLE table where role_id = user_record.role_id
-4:     if role_record.role_name != "TIC" then
-5:         return error "Unauthorized access. TIC privileges required."
-6:     end if
-7:     target_query <- query D3_QUERIES where query_id = query_id
-8:     if target_query is empty or target_query.assigned_tic != tic_id then
-9:         return error "Invalid or unauthorized query reference"
-10:    end if
-11:    target_doc <- query D4_DOCUMENTS where document_id = document_id and query_id = query_id
-12:    if target_doc is empty then
-13:        return error "Document not found for this query"
-14:    end if
-15:    current_time <- get system time
-16:    if review_decision = "Accept" then
-17:        target_doc.status <- "Verified"
-18:        target_query.status <- "Assigned to TIC"
-19:        notification_type <- "Document Accepted"
-20:    else if review_decision = "Reject" then
-21:        target_doc.status <- "Rejected"
-22:        target_doc.review_notes <- review_notes
-23:        target_query.status <- "Documents Required"
-24:        target_query.requirement_note <- review_notes
-25:        notification_type <- "Document Rejected"
-26:    else
-27:        return error "Invalid review decision"
-28:    end if
-29:    target_doc.reviewed_by <- tic_id
-30:    target_doc.updated_at <- current_time
-31:    target_query.updated_at <- current_time
-32:    update D4_DOCUMENTS with target_doc
-33:    update D3_QUERIES with target_query
-34:    audit_record <- initialize new audit log
-35:    audit_record.user_id <- tic_id
-36:    audit_record.action_type <- concat("Document ", review_decision)
-37:    audit_record.entity <- "Document"
-38:    audit_record.entity_id <- document_id
-39:    audit_record.timestamp <- current_time
-40:    insert audit_record into D7_AUDIT_LOGS table
-41:    call DispatchNotificationAsync(target_query.student_id, notification_type, query_id)
-42:    return success "Document review completed", document_id
-43: end procedure
+1: procedure TICReviewDocument(tic_id, query_id, doc_id, review_decision, review_notes)
+2:     // 1. Initial Type and Null Validation
+3:     if tic_id is null or query_id is null or doc_id is null or review_decision is null then
+4:         return error "Validation Failed: Core parameters cannot be null"
+5:     end if
+6:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(doc_id) != "string" or typeof(review_decision) != "string" then
+7:         return error "Validation Failed: Invalid parameter data types"
+8:     end if
+9:
+10:    // 2. Explicit Decision Validation Loop
+11:    valid_decisions <- array of strings {"Accept", "Reject"}
+12:    is_valid_decision <- false
+13:    for i <- 0 to length(valid_decisions) - 1 do
+14:        if review_decision = valid_decisions[i] then
+15:            is_valid_decision <- true
+16:            break
+17:        end if
+18:    end for
+19:    if is_valid_decision = false then
+20:        return error "Validation Failed: Decision must be 'Accept' or 'Reject'"
+21:    end if
+22:    
+23:    // Note constraint: Rejections require a justification
+24:    if review_decision = "Reject" and (review_notes is null or length(review_notes) < 5) then
+25:        return error "Validation Failed: Rejection requires detailed review notes"
+26:    end if
+27:
+28:    // 3. Strict Role-Based Access Control (RBAC) Validation
+29:    try
+30:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+31:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+32:        if role_record is empty or role_record.role_name != "TIC" then
+33:            return error "Security Error: Unauthorized access. TIC privileges required."
+34:        end if
+35:    catch DatabaseException as db_err
+36:        logError(db_err)
+37:        return error "System Error: Unable to validate permissions"
+38:    end try
+39:
+40:    // 4. Explicit Ownership and State Validation (IDOR Prevention)
+41:    try
+42:        // Verify Query Ownership
+43:        query_check <- "SELECT assigned_tic, student_id FROM D3_QUERIES WHERE query_id = ?"
+44:        target_query <- executeParameterizedQuery(query_check, [query_id])
+45:        if target_query is empty then
+46:            return error "Database Error: Target query reference not found"
+47:        end if
+48:        if target_query.assigned_tic != tic_id then
+49:            return error "Security Error: Unauthorized. You can only review documents for queries assigned to you."
+50:        end if
+51:        
+52:        // Verify Document Exists, belongs to this Query, and is Pending
+53:        doc_check <- "SELECT status FROM D4_DOCUMENTS WHERE document_id = ? AND query_id = ?"
+54:        target_doc <- executeParameterizedQuery(doc_check, [doc_id, query_id])
+55:        if target_doc is empty then
+56:            return error "Database Error: Document not found or does not belong to the specified query"
+57:        end if
+58:        if target_doc.status != "Pending Review" then
+59:            return error "State Error: Document is not in a reviewable state"
+60:        end if
+61:    catch DatabaseException as db_err
+62:        logError(db_err)
+63:        return error "System Error: Unable to validate query and document integrity"
+64:    end try
+65:
+66:    // 5. Secure Database Transaction for Dual-State Transition
+67:    current_time <- getSystemTimestamp()
+68:    notification_type <- ""
+69:    
+70:    try
+71:        beginTransaction()
+72:        
+73:        if review_decision = "Accept" then
+74:            doc_update <- "UPDATE D4_DOCUMENTS SET status = ?, review_notes = ?, updated_at = ? WHERE document_id = ?"
+75:            executeParameterizedUpdate(doc_update, ["Verified", review_notes, current_time, doc_id])
+76:            
+77:            query_update <- "UPDATE D3_QUERIES SET status = ?, updated_at = ? WHERE query_id = ?"
+78:            executeParameterizedUpdate(query_update, ["Assigned to TIC", current_time, query_id])
+79:            
+80:            notification_type <- "Document Accepted"
+81:        else if review_decision = "Reject" then
+82:            doc_update <- "UPDATE D4_DOCUMENTS SET status = ?, review_notes = ?, updated_at = ? WHERE document_id = ?"
+83:            executeParameterizedUpdate(doc_update, ["Rejected", review_notes, current_time, doc_id])
+84:            
+85:            query_update <- "UPDATE D3_QUERIES SET status = ?, updated_at = ? WHERE query_id = ?"
+86:            executeParameterizedUpdate(query_update, ["Documents Required", current_time, query_id])
+87:            
+88:            notification_type <- "Document Rejected"
+89:        end if
+90:        
+91:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+92:        executeParameterizedInsert(audit_sql, [tic_id, concat("Review Document - ", review_decision), "Document", doc_id, current_time])
+93:        
+94:        commitTransaction()
+95:    catch DatabaseException as db_err
+96:        rollbackTransaction()
+97:        logError(db_err)
+98:        return error "Database Error: Failed to update document and query states"
+99:    end try
+100:
+101:   // 6. Fire-and-Forget Asynchronous Notification
+102:   try
+103:       call DispatchNotificationAsync(target_query.student_id, notification_type, query_id)
+104:   catch NetworkException as net_err
+105:       logError("Warning: Failed to dispatch document review notification to student for query " + query_id)
+106:   end try
+107:
+108:   return success concat("Document successfully ", review_decision, "ed"), doc_id
+109: end procedure

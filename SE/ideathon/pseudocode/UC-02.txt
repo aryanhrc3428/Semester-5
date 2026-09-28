@@ -1,18 +1,89 @@
 1: procedure ResolveQueryRAG(student_query, threshold_T)
-2:     if student_query is empty then
-3:         return error "Invalid query input"
-4:     end if
-5:     Eq <- call GeminiAPI_GenerateEmbedding(student_query)
-6:     candidate_entries <- query D2_KNOWLEDGE for active, verified entries
-7:     results <- empty priority queue
-8:     for each entry d in candidate_entries do
-9:         similarity_score <- (Eq * d.embedding_vector) / (||Eq|| * ||d.embedding_vector||)
-10:        insert (d, similarity_score) into results
-11:    end for
-12:    top_k_context <- extract top 5 entries from results
-13:    if top_k_context is empty or highest similarity_score < threshold_T then
-14:        return response "Escalation Required", action "Raise Query to Admin"
-15:    end if
-16:    ai_answer <- call GeminiAPI_GenerateGroundedResponse(student_query, top_k_context)
-17:    return response "Grounded Answer", ai_answer, top_k_context.sources
-18: end procedure
+2:     // 1. Initial Type, Null, and Boundary Validation
+3:     if student_query is null or threshold_T is null then
+4:         return error "Validation Failed: Inputs cannot be null"
+5:     end if
+6:     if typeof(student_query) != "string" or typeof(threshold_T) != "float" then
+7:         return error "Validation Failed: Invalid data types"
+8:     end if
+9:     if length(student_query) < 5 or length(student_query) > 1000 then
+10:        return error "Validation Failed: Query length out of bounds"
+11:    end if
+12:    if threshold_T < 0.0 or threshold_T > 1.0 then
+13:        return error "Validation Failed: Threshold must be between 0.0 and 1.0"
+14:    end if
+15:
+16:    // 2. Generate Embedding with Network Resilience
+17:    query_embedding <- null
+18:    try
+19:        query_embedding <- call GeminiAPI_GenerateEmbedding(student_query)
+20:        if query_embedding is null or length(query_embedding) = 0 then
+21:            return error "API Error: Failed to generate valid embedding vector"
+22:        end if
+23:    catch NetworkException as net_err
+24:        logError(net_err)
+25:        return error "System Error: AI Embedding service unavailable"
+26:    end try
+27:
+28:    // 3. Secure Database Retrieval
+29:    candidate_entries <- empty list
+30:    try
+31:        query_string <- "SELECT kb_id, content, source, embedding FROM D2_KNOWLEDGE WHERE validity_status = ?"
+32:        candidate_entries <- executeParameterizedQuery(query_string, ["Active"])
+33:        if candidate_entries is empty then
+34:            return response "Escalation Required", action "Raise Query to Admin", reason "Knowledge Base empty"
+35:        end if
+36:    catch DatabaseException as db_err
+37:        logError(db_err)
+38:        return error "Database Error: Failed to retrieve Knowledge Base entries"
+39:    end try
+40:
+41:    // 4. Explicit Cosine Similarity Math (No "Magic" Functions)
+42:    results <- empty priority queue
+43:    for each entry in candidate_entries do
+44:        if entry.embedding is not null and length(entry.embedding) = length(query_embedding) then
+45:            dot_product <- 0.0
+46:            magnitude_q <- 0.0
+47:            magnitude_e <- 0.0
+48:            
+49:            // Explicitly iterate through the vector arrays
+50:            for i <- 0 to length(query_embedding) - 1 do
+51:                dot_product <- dot_product + (query_embedding[i] * entry.embedding[i])
+52:                magnitude_q <- magnitude_q + (query_embedding[i] * query_embedding[i])
+53:                magnitude_e <- magnitude_e + (entry.embedding[i] * entry.embedding[i])
+54:            end for
+55:            
+56:            magnitude_q <- sqrt(magnitude_q)
+57:            magnitude_e <- sqrt(magnitude_e)
+58:            
+59:            // Prevent division by zero
+60:            if magnitude_q > 0 and magnitude_e > 0 then
+61:                similarity_score <- dot_product / (magnitude_q * magnitude_e)
+62:                insert (entry, similarity_score) into results
+63:            end if
+64:        end if
+65:    end for
+66:
+67:    // 5. Evaluate Threshold and Extract Top K
+68:    sort results descending by similarity_score
+69:    top_k_context <- extract top 5 valid entries from results
+70:    
+71:    if length(top_k_context) = 0 or results[0].similarity_score < threshold_T then
+72:        return response "Escalation Required", action "Raise Query to Admin"
+73:    end if
+74:
+75:    // 6. Generate Grounded AI Response
+76:    try
+77:        ai_answer <- call GeminiAPI_GenerateGroundedResponse(student_query, top_k_context)
+78:        if ai_answer is null or length(ai_answer) = 0 then
+79:            return response "Escalation Required", action "Raise Query to Admin", reason "AI Generation Failed"
+80:        end if
+81:        
+82:        sources_list <- extract source fields from top_k_context
+83:        return success "Grounded Answer", ai_answer, sources_list
+84:        
+85:    catch NetworkException as net_err
+86:        logError(net_err)
+87:        return error "System Error: AI Generation service unavailable"
+88:    end try
+89: end procedure

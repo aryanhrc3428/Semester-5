@@ -1,26 +1,74 @@
 1: procedure RaiseNewQuery(student_id, query_text, department_id, category)
-2:     if query_text is empty then
-3:         return error "Query text cannot be empty"
-4:     end if
-5:     new_query_id <- generate unique ID
-6:     current_time <- get system time
-7:     query_record <- initialize new record
-8:     query_record.query_id <- new_query_id
-9:     query_record.student_id <- student_id
-10:    query_record.department_id <- department_id
-11:    query_record.description <- query_text
-12:    query_record.category <- category
-13:    query_record.status <- "Open"
-14:    query_record.created_at <- current_time
-15:    query_record.updated_at <- current_time
-16:    insert query_record into D3_QUERIES table
-17:    audit_record <- initialize new audit log
-18:    audit_record.user_id <- student_id
-19:    audit_record.action_type <- "Create"
-20:    audit_record.entity <- "Query"
-21:    audit_record.entity_id <- new_query_id
-22:    audit_record.timestamp <- current_time
-23:    insert audit_record into D7_AUDIT_LOGS table
-24:    call DispatchNotificationAsync("Admin", "New Query Escalated", new_query_id)
-25:    return success "Query submitted successfully", new_query_id
-26: end procedure
+2:     // 1. Initial Type, Null, and Boundary Validation
+3:     if student_id is null or query_text is null or department_id is null or category is null then
+4:         return error "Validation Failed: Inputs cannot be null"
+5:     end if
+6:     if typeof(query_text) != "string" or typeof(category) != "string" then
+7:         return error "Validation Failed: Invalid data types"
+8:     end if
+9:     if length(query_text) < 10 or length(query_text) > 2000 then
+10:        return error "Validation Failed: Query text length out of bounds"
+11:    end if
+12:    
+13:    // 2. Explicit Category Validation Loop
+14:    valid_categories <- array of strings {"Academic", "Administrative", "Technical", "Financial"}
+15:    is_valid_category <- false
+16:    for i <- 0 to length(valid_categories) - 1 do
+17:        if category = valid_categories[i] then
+18:            is_valid_category <- true
+19:            break
+20:        end if
+21:    end for
+22:    if is_valid_category = false then
+23:        return error "Validation Failed: Unrecognized query category"
+24:    end if
+25:
+26:    // 3. Relational Integrity Checks (Foreign Keys)
+27:    try
+28:        student_check <- "SELECT user_id FROM USERS WHERE user_id = ?"
+29:        student_record <- executeParameterizedQuery(student_check, [student_id])
+30:        if student_record is empty then
+31:            return error "Database Error: Invalid student identity"
+32:        end if
+33:        
+34:        dept_check <- "SELECT dept_id FROM DEPARTMENTS WHERE dept_id = ?"
+35:        dept_record <- executeParameterizedQuery(dept_check, [department_id])
+36:        if dept_record is empty then
+37:            return error "Database Error: Invalid department reference"
+38:        end if
+39:    catch DatabaseException as db_err
+40:        logError(db_err)
+41:        return error "System Error: Unable to validate relational constraints"
+42:    end try
+43:
+44:    // 4. Secure Database Transaction
+45:    new_query_id <- generateSecureUUID()
+46:    current_time <- getSystemTimestamp()
+47:    
+48:    try
+49:        // Begin Transaction to ensure both query and audit log succeed together
+50:        beginTransaction()
+51:        
+52:        insert_query <- "INSERT INTO D3_QUERIES (query_id, student_id, department_id, description, category, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+53:        executeParameterizedInsert(insert_query, [new_query_id, student_id, department_id, query_text, category, "Open", current_time, current_time])
+54:        
+55:        insert_audit <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+56:        executeParameterizedInsert(insert_audit, [student_id, "Create", "Query", new_query_id, current_time])
+57:        
+58:        commitTransaction()
+59:    catch DatabaseException as db_err
+60:        rollbackTransaction()
+61:        logError(db_err)
+62:        return error "Database Error: Failed to save new query"
+63:    end try
+64:
+65:    // 5. Fire-and-Forget Asynchronous Notification
+66:    try
+67:        call DispatchNotificationAsync("Admin", "New Query Escalated", new_query_id)
+68:    catch NetworkException as net_err
+69:        // Non-blocking error: log it but do not fail the query creation
+70:        logError("Warning: Failed to dispatch notification for query " + new_query_id)
+71:    end try
+72:
+73:    return success "Query submitted successfully", new_query_id
+74: end procedure

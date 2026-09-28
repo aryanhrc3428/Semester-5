@@ -1,15 +1,68 @@
 1: procedure LoadStudentDashboard(student_id)
-2:     if student_id is empty then
-3:         return error "Invalid student identity"
-4:     end if
-5:     student_queries <- query D3_QUERIES where student_id = student_id
-6:     sort student_queries by updated_at descending
-7:     dashboard_view <- empty list
-8:     for each query_record in student_queries do
-9:         associated_docs <- query D4_DOCUMENTS where query_id = query_record.query_id
-10:        associated_meetings <- query D5_MEETINGS where query_id = query_record.query_id
-11:        compiled_record <- combine(query_record, associated_docs, associated_meetings)
-12:        insert compiled_record into dashboard_view
-13:    end for
-14:    return success "Data retrieved", dashboard_view
-15: end procedure
+2:     // 1. Initial Type and Null Validation
+3:     if student_id is null then
+4:         return error "Validation Failed: Student ID cannot be null"
+5:     end if
+6:     if typeof(student_id) != "string" then
+7:         return error "Validation Failed: Invalid data type for Student ID"
+8:     end if
+9:     
+10:    // 2. Validate User Existence (Relational Integrity)
+11:    try
+12:        auth_check <- "SELECT user_id FROM USERS WHERE user_id = ?"
+13:        auth_record <- executeParameterizedQuery(auth_check, [student_id])
+14:        if auth_record is empty then
+15:            return error "Database Error: Student identity not found"
+16:        end if
+17:    catch DatabaseException as db_err
+18:        logError(db_err)
+19:        return error "System Error: Unable to validate user identity"
+20:    end try
+21:
+22:    // 3. Retrieve Base Queries (Relying on DB Engine for optimized sorting)
+23:    student_queries <- empty list
+24:    try
+25:        query_string <- "SELECT * FROM D3_QUERIES WHERE student_id = ? ORDER BY updated_at DESC"
+26:        student_queries <- executeParameterizedQuery(query_string, [student_id])
+27:    catch DatabaseException as db_err
+28:        logError(db_err)
+29:        return error "Database Error: Failed to retrieve student queries"
+30:    end try
+31:
+32:    // If no queries exist, return the empty dashboard successfully
+33:    if length(student_queries) = 0 then
+34:        return success "No queries found", empty list
+35:    end if
+36:
+37:    // 4. Data Aggregation Loop (Nested Retrievals)
+38:    dashboard_view <- empty list
+39:    for i <- 0 to length(student_queries) - 1 do
+40:        current_query <- student_queries[i]
+41:        associated_docs <- empty list
+42:        associated_meetings <- empty list
+43:        
+44:        // Wrap nested queries in a try-catch to prevent a single corrupted relation from crashing the whole dashboard
+45:        try
+46:            doc_sql <- "SELECT document_id, file_name, status FROM D4_DOCUMENTS WHERE query_id = ?"
+47:            associated_docs <- executeParameterizedQuery(doc_sql, [current_query.query_id])
+48:            
+49:            meeting_sql <- "SELECT meeting_id, date, start_time, status FROM D5_MEETINGS WHERE query_id = ?"
+50:            associated_meetings <- executeParameterizedQuery(meeting_sql, [current_query.query_id])
+51:        catch DatabaseException as db_err
+52:            logError("Warning: Failed to load relations for query " + current_query.query_id)
+53:            associated_docs <- "Data unavailable"
+54:            associated_meetings <- "Data unavailable"
+55:        end try
+56:        
+57:        // 5. Construct Compiled Record
+58:        compiled_record <- initialize new dictionary
+59:        compiled_record["query_details"] <- current_query
+60:        compiled_record["documents"] <- associated_docs
+61:        compiled_record["meetings"] <- associated_meetings
+62:        
+63:        // Append to final view array
+64:        insert compiled_record into dashboard_view at index i
+65:    end for
+66:    
+67:    return success "Dashboard data retrieved successfully", dashboard_view
+68: end procedure

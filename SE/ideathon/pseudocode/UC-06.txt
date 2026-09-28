@@ -1,52 +1,122 @@
 1: procedure KnowledgeBaseManagement(admin_id, action_type, entry_data)
-2:     user_record <- query USERS table where user_id = admin_id
-3:     role_record <- query ROLE table where role_id = user_record.role_id
-4:     if role_record.role_name not in ("Admin", "Authorized TIC") then
-5:         return error "Unauthorized modification attempt"
-6:     end if
-7:     current_time <- get system time
-8:     if action_type = "Create" then
-9:         if entry_data.title is empty or entry_data.content is empty then
-10:            return error "Incomplete Knowledge Base entry"
-11:        end if
-12:        new_kb_id <- generate unique ID
-13:        embedding_vector <- call GeminiAPI_GenerateEmbedding(entry_data.content)
-14:        kb_record <- initialize new record
-15:        kb_record.kb_id <- new_kb_id
-16:        kb_record.title <- entry_data.title
-17:        kb_record.content <- entry_data.content
-18:        kb_record.category <- entry_data.category
-19:        kb_record.source <- entry_data.source
-20:        kb_record.verification_status <- "Verified"
-21:        kb_record.validity_status <- "Active"
-22:        kb_record.embedding <- embedding_vector
-23:        kb_record.created_by <- admin_id
-24:        kb_record.created_at <- current_time
-25:        insert kb_record into D2_KNOWLEDGE table
-26:        return success "Knowledge Base entry created and embedded", new_kb_id
-1:     else if action_type = "Update" then
-2:         existing_entry <- query D2_KNOWLEDGE where kb_id = entry_data.kb_id
-3:         if existing_entry is empty then
-4:             return error "Entry not found"
-5:         end if
-6:         if entry_data.content is modified then
-7:             existing_entry.embedding <- call GeminiAPI_GenerateEmbedding(entry_data.content)
-8:             existing_entry.content <- entry_data.content
-9:         end if
-10:        existing_entry.title <- entry_data.title
-11:        existing_entry.verification_status <- entry_data.verification_status
-12:        existing_entry.validity_status <- entry_data.validity_status
-13:        existing_entry.updated_at <- current_time
-14:        update D2_KNOWLEDGE with existing_entry
-15:        return success "Knowledge Base entry updated", entry_data.kb_id
-1:     else if action_type = "Deactivate" then
-2:         target_entry <- query D2_KNOWLEDGE where kb_id = entry_data.kb_id
-3:         if target_entry is empty then
-4:             return error "Entry not found"
-5:         end if
-6:         target_entry.validity_status <- "Inactive"
-7:         target_entry.updated_at <- current_time
-8:         update D2_KNOWLEDGE with target_entry
-9:         return success "Knowledge Base entry deactivated", entry_data.kb_id
-10:    end if
-11: end procedure
+2:     // 1. Initial Type and Null Validation
+3:     if admin_id is null or action_type is null or entry_data is null then
+4:         return error "Validation Failed: Base parameters cannot be null"
+5:     end if
+6:     if typeof(action_type) != "string" or typeof(entry_data) != "dictionary" then
+7:         return error "Validation Failed: Invalid parameter data types"
+8:     end if
+9:
+10:    // 2. Explicit Action Type Validation
+11:    valid_actions <- array of strings {"Create", "Update", "Deactivate"}
+12:    is_valid_action <- false
+13:    for i <- 0 to length(valid_actions) - 1 do
+14:        if action_type = valid_actions[i] then
+15:            is_valid_action <- true
+16:            break
+17:        end if
+18:    end for
+19:    if is_valid_action = false then
+20:        return error "Validation Failed: Unrecognized action type"
+21:    end if
+22:
+23:    // 3. Strict Role-Based Access Control (RBAC)
+24:    try
+25:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+26:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
+27:        if role_record is empty then
+28:            return error "Database Error: User identity not found"
+29:        end if
+30:        if role_record.role_name != "Admin" and role_record.role_name != "Authorized TIC" then
+31:            return error "Security Error: Unauthorized modification attempt"
+32:        end if
+33:    catch DatabaseException as db_err
+34:        logError(db_err)
+35:        return error "System Error: Unable to validate permissions"
+36:    end try
+37:
+38:    current_time <- getSystemTimestamp()
+39:
+40:    // 4. Branch: Create Entry
+41:    if action_type = "Create" then
+42:        if entry_data["title"] is null or entry_data["content"] is null then
+43:            return error "Validation Failed: Title and content are required for creation"
+44:        end if
+45:        
+46:        embedding_vector <- null
+47:        try
+48:            embedding_vector <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
+49:            if embedding_vector is null or length(embedding_vector) = 0 then
+50:                return error "API Error: Failed to generate vector embedding"
+51:            end if
+52:        catch NetworkException as net_err
+53:            logError(net_err)
+54:            return error "System Error: AI Embedding service unavailable"
+55:        end try
+56:        
+57:        new_kb_id <- generateSecureUUID()
+58:        try
+59:            insert_kb <- "INSERT INTO D2_KNOWLEDGE (kb_id, title, content, category, source, verification_status, validity_status, embedding, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+60:            executeParameterizedInsert(insert_kb, [new_kb_id, entry_data["title"], entry_data["content"], entry_data["category"], entry_data["source"], "Verified", "Active", embedding_vector, admin_id, current_time, current_time])
+61:            return success "Knowledge Base entry created", new_kb_id
+62:        catch DatabaseException as db_err
+63:            logError(db_err)
+64:            return error "Database Error: Failed to insert new KB entry"
+65:        end try
+66:
+67:    // 5. Branch: Update Entry
+68:    else if action_type = "Update" then
+69:        if entry_data["kb_id"] is null then
+70:            return error "Validation Failed: KB ID required for update"
+71:        end if
+72:        
+73:        try
+74:            fetch_kb <- "SELECT content FROM D2_KNOWLEDGE WHERE kb_id = ?"
+75:            existing_entry <- executeParameterizedQuery(fetch_kb, [entry_data["kb_id"]])
+76:            if existing_entry is empty then
+77:                return error "Database Error: Knowledge Base entry not found"
+78:            end if
+79:            
+80:            update_query <- "UPDATE D2_KNOWLEDGE SET title = ?, category = ?, source = ?, updated_at = ?"
+81:            update_params <- array of variables {entry_data["title"], entry_data["category"], entry_data["source"], current_time}
+82:            
+83:            // Conditionally regenerate embeddings only if content changed
+84:            if entry_data["content"] != null and entry_data["content"] != existing_entry.content then
+85:                new_embedding <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
+86:                update_query <- concat(update_query, ", content = ?, embedding = ?")
+87:                append entry_data["content"] to update_params
+88:                append new_embedding to update_params
+89:            end if
+90:            
+91:            update_query <- concat(update_query, " WHERE kb_id = ?")
+92:            append entry_data["kb_id"] to update_params
+93:            
+94:            executeParameterizedUpdate(update_query, update_params)
+95:            return success "Knowledge Base entry updated", entry_data["kb_id"]
+96:        catch DatabaseException as db_err
+97:            logError(db_err)
+98:            return error "Database Error: Failed to update KB entry"
+99:        catch NetworkException as net_err
+100:           logError(net_err)
+101:           return error "System Error: AI Embedding service unavailable during update"
+102:       end try
+103:
+104:   // 6. Branch: Deactivate Entry
+105:   else if action_type = "Deactivate" then
+106:       if entry_data["kb_id"] is null then
+107:           return error "Validation Failed: KB ID required for deactivation"
+108:       end if
+109:       
+110:       try
+111:           deact_query <- "UPDATE D2_KNOWLEDGE SET validity_status = ?, updated_at = ? WHERE kb_id = ?"
+112:           rows_affected <- executeParameterizedUpdate(deact_query, ["Inactive", current_time, entry_data["kb_id"]])
+113:           if rows_affected = 0 then
+114:               return error "Database Error: Target entry not found or already inactive"
+115:           end if
+116:           return success "Knowledge Base entry deactivated", entry_data["kb_id"]
+117:       catch DatabaseException as db_err
+118:           logError(db_err)
+119:           return error "Database Error: Failed to deactivate KB entry"
+120:       end try
+121:   end if
+122: end procedure

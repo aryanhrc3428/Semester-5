@@ -1,28 +1,86 @@
 1: procedure UploadDocument(student_id, query_id, file_obj)
-2:     if file_obj.size > 25MB then
-3:         return error "File size exceeds maximum 25MB limit"
-4:     end if
-5:     if file_obj.format not in ("PDF", "JPG", "JPEG", "PNG") then
-6:         return error "Unsupported file format"
-7:     end if
-8:     parent_query <- query D3_QUERIES where query_id = query_id
-9:     if parent_query is empty then
-10:        return error "Invalid query association"
-11:    end if
-12:    storage_key <- call AWSS3_Upload(file_obj.stream, file_obj.name)
-13:    current_time <- get system time
-14:    doc_record <- initialize new record
-15:    doc_record.query_id <- query_id
-16:    doc_record.uploaded_by <- student_id
-17:    doc_record.file_name <- file_obj.name
-18:    doc_record.file_type <- file_obj.format
-19:    doc_record.file_size <- file_obj.size
-20:    doc_record.storage_key <- storage_key
-21:    doc_record.status <- "Pending"
-22:    doc_record.uploaded_at <- current_time
-23:    insert doc_record into D4_DOCUMENTS table
-24:    parent_query.status <- "Document Submitted"
-25:    update D3_QUERIES with parent_query
-26:    call DispatchNotificationAsync("Staff", "Document Uploaded", doc_record.query_id)
-27:    return success "Document securely uploaded", doc_record.document_id
-28: end procedure
+2:     // 1. Initial Type and Null Validation
+3:     if student_id is null or query_id is null or file_obj is null then
+4:         return error "Validation Failed: Inputs cannot be null"
+5:     end if
+6:     if typeof(file_obj.name) != "string" or typeof(file_obj.size) != "integer" then
+7:         return error "Validation Failed: Invalid file object structure"
+8:     end if
+9:
+10:    // 2. Explicit Physical File Constraints
+11:    max_bytes <- 25 * 1024 * 1024  // 26,214,400 bytes (25MB)
+12:    if file_obj.size = 0 or file_obj.size > max_bytes then
+13:        return error "Validation Failed: File size must be between 1 byte and 25MB"
+14:    end if
+15:
+16:    valid_formats <- array of strings {"PDF", "JPG", "JPEG", "PNG"}
+17:    file_extension <- toUpper(extractExtension(file_obj.name))
+18:    is_valid_format <- false
+19:    for i <- 0 to length(valid_formats) - 1 do
+20:        if file_extension = valid_formats[i] then
+21:            is_valid_format <- true
+22:            break
+23:        end if
+24:    end for
+25:    if is_valid_format = false then
+26:        return error "Validation Failed: Unsupported file format detected"
+27:    end if
+28:
+29:    // 3. Relational Integrity and Ownership Check
+30:    try
+31:        auth_check <- "SELECT student_id, status FROM D3_QUERIES WHERE query_id = ?"
+32:        parent_query <- executeParameterizedQuery(auth_check, [query_id])
+33:        if parent_query is empty then
+34:            return error "Database Error: Invalid query reference"
+35:        end if
+36:        if parent_query.student_id != student_id then
+37:            return error "Security Error: Unauthorized attempt to upload to another user's query"
+38:        end if
+39:    catch DatabaseException as db_err
+40:        logError(db_err)
+41:        return error "System Error: Unable to validate query ownership"
+42:    end try
+43:
+44:    // 4. External Cloud Storage Integration with Resilience
+45:    storage_key <- null
+46:    try
+47:        storage_key <- call AWSS3_UploadStream(file_obj.stream, file_obj.name, query_id)
+48:        if storage_key is null then
+49:            return error "Cloud Error: S3 returned null storage key"
+50:        end if
+51:    catch NetworkException as net_err
+52:        logError(net_err)
+53:        return error "System Error: File upload service temporarily unavailable"
+54:    end try
+55:
+56:    // 5. Secure Database Transaction (Insert Document & Update Query)
+57:    new_doc_id <- generateSecureUUID()
+58:    current_time <- getSystemTimestamp()
+59:    
+60:    try
+61:        beginTransaction()
+62:        
+63:        insert_doc <- "INSERT INTO D4_DOCUMENTS (document_id, query_id, uploaded_by, file_name, file_type, file_size, storage_key, status, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+64:        executeParameterizedInsert(insert_doc, [new_doc_id, query_id, student_id, file_obj.name, file_extension, file_obj.size, storage_key, "Pending Review", current_time])
+65:        
+66:        update_query <- "UPDATE D3_QUERIES SET status = ?, updated_at = ? WHERE query_id = ?"
+67:        executeParameterizedUpdate(update_query, ["Document Submitted", current_time, query_id])
+68:        
+69:        commitTransaction()
+70:    catch DatabaseException as db_err
+71:        rollbackTransaction()
+72:        logError(db_err)
+73:        // Attempt to clean up orphaned S3 file if DB fails
+74:        call AWSS3_Delete(storage_key) 
+75:        return error "Database Error: Failed to save document records"
+76:    end try
+77:
+78:    // 6. Fire-and-Forget Asynchronous Notification
+79:    try
+80:        call DispatchNotificationAsync("Staff", "Document Uploaded", new_doc_id)
+81:    catch NetworkException as net_err
+82:        logError("Warning: Failed to dispatch staff notification for document " + new_doc_id)
+83:    end try
+84:
+85:    return success "Document securely uploaded and linked", new_doc_id
+86: end procedure

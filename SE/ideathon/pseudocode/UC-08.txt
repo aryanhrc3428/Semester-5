@@ -1,16 +1,74 @@
 1: procedure AdminViewNewQueries(admin_id)
-2:     user_record <- query USERS table where user_id = admin_id
-3:     role_record <- query ROLE table where role_id = user_record.role_id
-4:     if role_record.role_name != "Admin" then
-5:         return error "Unauthorized access. Admin privileges required."
-6:     end if
-7:     escalated_queries <- query D3_QUERIES where status = "Open"
-8:     sort escalated_queries by created_at ascending
-9:     admin_dashboard_view <- empty list
-10:    for each query_record in escalated_queries do
-11:        student_record <- query USERS table where user_id = query_record.student_id
-12:        ticket_display <- combine(query_record, student_record.name, student_record.department)
-13:        insert ticket_display into admin_dashboard_view
-14:    end for
-15:    return success "Admin queue loaded", admin_dashboard_view
-16: end procedure
+2:     // 1. Initial Type and Null Validation
+3:     if admin_id is null then
+4:         return error "Validation Failed: Admin ID cannot be null"
+5:     end if
+6:     if typeof(admin_id) != "string" then
+7:         return error "Validation Failed: Invalid data type for Admin ID"
+8:     end if
+9:     
+10:    // 2. Strict Role-Based Access Control (RBAC) Validation
+11:    try
+12:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+13:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
+14:        if role_record is empty then
+15:            return error "Database Error: Admin identity not found"
+16:        end if
+17:        if role_record.role_name != "Admin" then
+18:            return error "Security Error: Unauthorized access. Admin privileges required."
+19:        end if
+20:    catch DatabaseException as db_err
+21:        logError(db_err)
+22:        return error "System Error: Unable to validate permissions"
+23:    end try
+24:
+25:    // 3. Secure Base Query Retrieval
+26:    open_queries <- empty list
+27:    try
+28:        // Fetch only queries with "Open" status, sorted chronologically
+29:        query_string <- "SELECT * FROM D3_QUERIES WHERE status = ? ORDER BY created_at ASC"
+30:        open_queries <- executeParameterizedQuery(query_string, ["Open"])
+31:    catch DatabaseException as db_err
+32:        logError(db_err)
+33:        return error "Database Error: Failed to retrieve open queries"
+34:    end try
+35:
+36:    // If no open queries exist, return gracefully
+37:    if length(open_queries) = 0 then
+38:        return success "No new queries found", empty list
+39:    end if
+40:
+41:    // 4. Data Aggregation Loop for Dashboard Context
+42:    admin_dashboard_view <- empty list
+43:    for i <- 0 to length(open_queries) - 1 do
+44:        current_query <- open_queries[i]
+45:        student_details <- initialize new dictionary
+46:        
+47:        // Resolve student details within an isolated try-catch to prevent dashboard failure
+48:        try
+49:            student_sql <- "SELECT name, email FROM USERS WHERE user_id = ?"
+50:            student_record <- executeParameterizedQuery(student_sql, [current_query.student_id])
+51:            if student_record is not empty then
+52:                student_details["name"] <- student_record.name
+53:                student_details["email"] <- student_record.email
+54:            else
+55:                student_details["name"] <- "Unknown Student"
+56:                student_details["email"] <- "Unknown Email"
+57:            end if
+58:        catch DatabaseException as db_err
+59:            logError("Warning: Failed to load student details for query " + current_query.query_id)
+60:            student_details["name"] <- "Data unavailable"
+61:            student_details["email"] <- "Data unavailable"
+62:        end try
+63:        
+64:        // 5. Construct Compiled Record
+65:        compiled_record <- initialize new dictionary
+66:        compiled_record["query_details"] <- current_query
+67:        compiled_record["student_info"] <- student_details
+68:        
+69:        // Append to final view array
+70:        insert compiled_record into admin_dashboard_view at index i
+71:    end for
+72:    
+73:    return success "Admin dashboard data retrieved successfully", admin_dashboard_view
+74: end procedure
