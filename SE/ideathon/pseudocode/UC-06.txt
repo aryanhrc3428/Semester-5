@@ -1,15 +1,15 @@
-1: procedure KnowledgeBaseManagement(admin_id, action_type, entry_data)
+1: procedure ViewRequestSlotAndAcceptMeeting(user_id, action_type, slot_data)
 2:     // 1. Initial Type and Null Validation
-3:     if admin_id is null or action_type is null or entry_data is null
+3:     if user_id is null or action_type is null or slot_data is null
 4:     then
-5:         return error "Validation Failed: Base parameters cannot be null"
+5:         return error "Validation Failed: Core parameters cannot be null"
 6:     end if
-7:     if typeof(action_type) != "string" or typeof(entry_data) != "dictionary"
+7:     if typeof(user_id) != "string" or typeof(action_type) != "string" or typeof(slot_data) != "dictionary"
 8:     then
 9:         return error "Validation Failed: Invalid parameter data types"
 10:    end if
-11:    // 2. Explicit Action Type Validation
-12:    valid_actions <- array of strings {"Create", "Update", "Deactivate"}
+11:    // 2. Explicit Action Type Validation Loop
+12:    valid_actions <- array of strings {"ViewSlots", "RequestSlot", "AcceptMeeting"}
 13:    is_valid_action <- false
 14:    for i <- 0 to length(valid_actions) - 1
 15:    do
@@ -21,105 +21,122 @@
 21:    end for
 22:    if is_valid_action = false
 23:    then
-24:        return error "Validation Failed: Unrecognized action type"
+24:        return error "Validation Failed: Action must be 'ViewSlots', 'RequestSlot', or 'AcceptMeeting'"
 25:    end if
-26:    // 3. Strict Role-Based Access Control (RBAC)
+26:    // 3. Strict Role-Based Access Control (RBAC) Validation
 27:    try
 28:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-29:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
+29:        role_record <- executeParameterizedQuery(rbac_query, [user_id])
 30:        if role_record is empty
 31:        then
-32:            return error "Database Error: User identity not found"
+32:            return error "Security Error: User account not found"
 33:        end if
-34:        if role_record.role_name != "Admin" and role_record.role_name != "Authorized TIC"
-35:        then
-36:            return error "Security Error: Unauthorized modification attempt"
-37:        end if
-38:    catch DatabaseException as db_err
-39:        logError(db_err)
-40:        return error "System Error: Unable to validate permissions"
-41:    end try
-42:    current_time <- getSystemTimestamp()
-43:    // 4. Branch: Create Entry
-44:    if action_type = "Create"
-45:    then
-46:        if entry_data["title"] is null or entry_data["content"] is null
-47:        then
-48:            return error "Validation Failed: Title and content are required for creation"
-49:        end if
-50:        embedding_vector <- null
-51:        try
-52:            embedding_vector <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
-53:            if embedding_vector is null or length(embedding_vector) = 0
-54:            then
-55:                return error "API Error: Failed to generate vector embedding"
-56:            end if
-57:        catch NetworkException as net_err
-58:            logError(net_err)
-59:            return error "System Error: AI Embedding service unavailable"
-60:        end try
-61:        new_kb_id <- generateSecureUUID()
-62:        try
-63:            insert_kb <- "INSERT INTO D2_KNOWLEDGE (kb_id, title, content, category, source, verification_status, validity_status, embedding, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-64:            executeParameterizedInsert(insert_kb, [new_kb_id, entry_data["title"], entry_data["content"], entry_data["category"], entry_data["source"], "Verified", "Active", embedding_vector, admin_id, current_time, current_time])
-65:            return success "Knowledge Base entry created", new_kb_id
-66:        catch DatabaseException as db_err
-67:            logError(db_err)
-68:            return error "Database Error: Failed to insert new KB entry"
-69:        end try
-70:    // 5. Branch: Update Entry
-71:    else if action_type = "Update"
-72:    then
-73:        if entry_data["kb_id"] is null
-74:        then
-75:            return error "Validation Failed: KB ID required for update"
-76:        end if
-77:        try
-78:            fetch_kb <- "SELECT content FROM D2_KNOWLEDGE WHERE kb_id = ?"
-79:            existing_entry <- executeParameterizedQuery(fetch_kb, [entry_data["kb_id"]])
-80:            if existing_entry is empty
-81:            then
-82:                return error "Database Error: Knowledge Base entry not found"
-83:            end if
-84:            update_query <- "UPDATE D2_KNOWLEDGE SET title = ?, category = ?, source = ?, updated_at = ?"
-85:            update_params <- array of variables {entry_data["title"], entry_data["category"], entry_data["source"], current_time}
-86:            // Conditionally regenerate embeddings only if content changed
-87:            if entry_data["content"] != null and entry_data["content"] != existing_entry.content
-88:            then
-89:                new_embedding <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
-90:                update_query <- concat(update_query, ", content = ?, embedding = ?")
-91:                append entry_data["content"] to update_params
-92:                append new_embedding to update_params
-93:            end if
-94:            update_query <- concat(update_query, " WHERE kb_id = ?")
-95:            append entry_data["kb_id"] to update_params
-96:            executeParameterizedUpdate(update_query, update_params)
-97:            return success "Knowledge Base entry updated", entry_data["kb_id"]
-98:        catch DatabaseException as db_err
-99:            logError(db_err)
-100:           return error "Database Error: Failed to update KB entry"
-101:       catch NetworkException as net_err
-102:           logError(net_err)
-103:           return error "System Error: AI Embedding service unavailable during update"
-104:       end try
-105:   // 6. Branch: Deactivate Entry
-106:   else if action_type = "Deactivate"
-107:   then
-108:       if entry_data["kb_id"] is null
-109:       then
-110:           return error "Validation Failed: KB ID required for deactivation"
-111:       end if
-112:       try
-113:           deact_query <- "UPDATE D2_KNOWLEDGE SET validity_status = ?, updated_at = ? WHERE kb_id = ?"
-114:           rows_affected <- executeParameterizedUpdate(deact_query, ["Inactive", current_time, entry_data["kb_id"]])
-115:           if rows_affected = 0
-116:           then
-117:               return error "Database Error: Target entry not found or already inactive"
-118:           end if
-119:           return success "Knowledge Base entry deactivated", entry_data["kb_id"]
-120:       catch DatabaseException as db_err
-121:           logError(db_err)
-122:           return error "Database Error: Failed to deactivate KB entry"
-123:       end try
-124:   end if
-125: end procedure
+34:    catch DatabaseException as db_err
+35:        logError(db_err)
+36:        return error "System Error: Unable to validate permissions"
+37:    end try
+38:    current_time <- getSystemTimestamp()
+39:    reference_id <- null
+40:    target_recipient_id <- null
+41:    notification_msg <- ""
+42:    // 4. Branch A: View Available Slots (Student or TIC)
+43:    if action_type = "ViewSlots"
+44:    then
+45:        if slot_data["tic_id"] is null or slot_data["target_date"] is null
+46:        then
+47:            return error "Validation Failed: TIC ID and target date required to view slots"
+48:        end if
+49:        try
+50:            slot_query <- "SELECT slot_id, start_time, end_time, status FROM D6_TIME_SLOTS WHERE assigned_tic = ? AND slot_date = ? AND status = ?"
+51:            available_slots <- executeParameterizedQuery(slot_query, [slot_data["tic_id"], slot_data["target_date"], "Available"])
+52:            return success "Available slots retrieved successfully", available_slots
+53:        catch DatabaseException as db_err
+54:            logError(db_err)
+55:            return error "Database Error: Failed to retrieve slot availability"
+56:        end try
+57:    // 5. Branch B: Request Slot (Student Action)
+58:    else if action_type = "RequestSlot"
+59:    then
+60:        if role_record.role_name != "Student"
+61:        then
+62:            return error "Security Error: Only students can request meeting slots"
+63:        end if
+64:        if slot_data["slot_id"] is null or slot_data["query_id"] is null
+65:        then
+66:            return error "Validation Failed: Slot ID and Query ID required for request"
+67:        end if
+68:        try
+69:            // Verify Slot Exists and is Open
+70:            slot_check <- "SELECT assigned_tic, status FROM D6_TIME_SLOTS WHERE slot_id = ?"
+71:            target_slot <- executeParameterizedQuery(slot_check, [slot_data["slot_id"]])
+72:            if target_slot is empty or target_slot.status != "Available"
+73:            then
+74:                return error "State Error: Selected slot is no longer available"
+75:            end if
+76:            target_recipient_id <- target_slot.assigned_tic
+77:            reference_id <- slot_data["slot_id"]
+78:            beginTransaction()
+79:            update_slot <- "UPDATE D6_TIME_SLOTS SET status = ?, student_id = ?, updated_at = ? WHERE slot_id = ?"
+80:            executeParameterizedUpdate(update_slot, ["Requested", user_id, current_time, reference_id])
+81:            insert_audit <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+82:            executeParameterizedInsert(insert_audit, [user_id, "Request Slot", "Slot", reference_id, current_time])
+83:            commitTransaction()
+84:            notification_msg <- "Meeting Slot Requested"
+85:        catch DatabaseException as db_err
+86:            rollbackTransaction()
+87:            logError(db_err)
+88:            return error "Database Error: Failed to process slot request securely"
+89:        end try
+90:    // 6. Branch C: Accept Meeting (TIC Action)
+91:    else if action_type = "AcceptMeeting"
+92:    then
+93:        if role_record.role_name != "TIC"
+94:        then
+95:            return error "Security Error: Only TICs can accept meeting slots"
+96:        end if
+97:        if slot_data["slot_id"] is null
+98:        then
+99:            return error "Validation Failed: Slot ID required to accept meeting"
+100:       end if
+101:       try
+102:           // Verify Slot Ownership and Requested State (IDOR Prevention)
+103:           slot_verify <- "SELECT assigned_tic, student_id, status FROM D6_TIME_SLOTS WHERE slot_id = ?"
+104:           target_slot <- executeParameterizedQuery(slot_verify, [slot_data["slot_id"]])
+105:           if target_slot is empty
+106:           then
+107:               return error "Database Error: Slot reference not found"
+108:           end if
+109:           if target_slot.assigned_tic != user_id
+110:           then
+111:               return error "Security Error: Unauthorized attempt to accept another TIC's slot"
+112:           end if
+113:           if target_slot.status != "Requested"
+114:           then
+115:               return error "State Error: Slot must be in 'Requested' state to accept"
+116:           end if
+117:           target_recipient_id <- target_slot.student_id
+118:           reference_id <- slot_data["slot_id"]
+119:           beginTransaction()
+120:           accept_update <- "UPDATE D6_TIME_SLOTS SET status = ?, updated_at = ? WHERE slot_id = ?"
+121:           executeParameterizedUpdate(accept_update, ["Accepted", current_time, reference_id])
+122:           insert_audit <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+123:           executeParameterizedInsert(insert_audit, [user_id, "Accept Meeting", "Slot", reference_id, current_time])
+124:           commitTransaction()
+125:           notification_msg <- "Meeting Accepted"
+126:       catch DatabaseException as db_err
+127:           rollbackTransaction()
+128:           logError(db_err)
+129:           return error "Database Error: Failed to accept meeting slot safely"
+130:       end try
+131:   end if
+132:   // 7. Fire-and-Forget Asynchronous Notification
+133:   if action_type != "ViewSlots"
+134:   then
+135:       try
+136:           call DispatchNotificationAsync(target_recipient_id, notification_msg, reference_id)
+137:       catch NetworkException as net_err
+138:           logError("Warning: Failed to dispatch notification for slot " + reference_id)
+139:       end try
+140:   end if
+141:   return success concat("Action successfully processed: ", action_type), reference_id
+142: end procedure
