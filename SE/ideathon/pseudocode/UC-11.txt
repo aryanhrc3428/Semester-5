@@ -1,77 +1,76 @@
 1: procedure TICViewAssignedQueries(tic_id)
 2:     // 1. Initial Type and Null Validation
-3:     if tic_id is null then
-4:         return error "Validation Failed: TIC ID cannot be null"
-5:     end if
-6:     if typeof(tic_id) != "string" then
-7:         return error "Validation Failed: Invalid data type for TIC ID"
-8:     end if
-9:     
-10:    // 2. Strict Role-Based Access Control (RBAC) Validation
-11:    try
-12:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-13:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-14:        if role_record is empty then
-15:            return error "Database Error: User identity not found"
-16:        end if
-17:        if role_record.role_name != "TIC" then
-18:            return error "Security Error: Unauthorized access. TIC privileges required."
-19:        end if
-20:    catch DatabaseException as db_err
-21:        logError(db_err)
-22:        return error "System Error: Unable to validate permissions"
-23:    end try
-24:
-25:    // 3. Secure Base Query Retrieval (Filtered by Ownership)
-26:    assigned_queries <- empty list
-27:    try
-28:        // Fetch only queries assigned to this specific TIC, sorted chronologically
-29:        query_string <- "SELECT * FROM D3_QUERIES WHERE assigned_tic = ? ORDER BY updated_at DESC"
-30:        assigned_queries <- executeParameterizedQuery(query_string, [tic_id])
-31:    catch DatabaseException as db_err
-32:        logError(db_err)
-33:        return error "Database Error: Failed to retrieve assigned queries"
-34:    end try
-35:
-36:    // If no queries are assigned to this TIC, return gracefully
-37:    if length(assigned_queries) = 0 then
-38:        return success "No assigned queries found", empty list
-39:    end if
-40:
-41:    // 4. Data Aggregation Loop for Dashboard Context
-42:    tic_dashboard_view <- empty list
-43:    for i <- 0 to length(assigned_queries) - 1 do
-44:        current_query <- assigned_queries[i]
-45:        student_details <- initialize new dictionary
-46:        
-47:        // Resolve student details within an isolated try-catch to prevent dashboard failure
-48:        try
-49:            student_sql <- "SELECT name, email, department_id FROM USERS WHERE user_id = ?"
-50:            student_record <- executeParameterizedQuery(student_sql, [current_query.student_id])
-51:            if student_record is not empty then
-52:                student_details["name"] <- student_record.name
-53:                student_details["email"] <- student_record.email
-54:                student_details["department_id"] <- student_record.department_id
-55:            else
-56:                student_details["name"] <- "Unknown Student"
-57:                student_details["email"] <- "Unknown Email"
-58:                student_details["department_id"] <- "Unknown"
-59:            end if
-60:        catch DatabaseException as db_err
-61:            logError("Warning: Failed to load student details for query " + current_query.query_id)
-62:            student_details["name"] <- "Data unavailable"
-63:            student_details["email"] <- "Data unavailable"
-64:            student_details["department_id"] <- "Data unavailable"
-65:        end try
-66:        
-67:        // 5. Construct Compiled Record
-68:        compiled_record <- initialize new dictionary
-69:        compiled_record["query_details"] <- current_query
-70:        compiled_record["student_info"] <- student_details
-71:        
+3:     if tic_id is null
+4:     then
+5:         return error "Validation Failed: TIC ID cannot be null"
+6:     end if
+7:     if typeof(tic_id) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid data type for TIC ID"
+10:    end if
+11:    // 2. Strict Role-Based Access Control (RBAC) Validation
+12:    try
+13:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+14:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+15:        if role_record is empty
+16:        then
+17:            return error "Database Error: User identity not found"
+18:        end if
+19:        if role_record.role_name != "TIC"
+20:        then
+21:            return error "Security Error: Unauthorized access. TIC privileges required."
+22:        end if
+23:    catch DatabaseException as db_err
+24:        logError(db_err)
+25:        return error "System Error: Unable to validate permissions"
+26:    end try
+27:    // 3. Secure Base Query Retrieval (Filtered by Ownership)
+28:    assigned_queries <- empty list
+29:    try
+30:        // Fetch only queries assigned to this specific TIC, sorted chronologically
+31:        query_string <- "SELECT * FROM D3_QUERIES WHERE assigned_tic = ? ORDER BY updated_at DESC"
+32:        assigned_queries <- executeParameterizedQuery(query_string, [tic_id])
+33:    catch DatabaseException as db_err
+34:        logError(db_err)
+35:        return error "Database Error: Failed to retrieve assigned queries"
+36:    end try
+37:    // If no queries are assigned to this TIC, return gracefully
+38:    if length(assigned_queries) = 0
+39:    then
+40:        return success "No assigned queries found", empty list
+41:    end if
+42:    // 4. Data Aggregation Loop for Dashboard Context
+43:    tic_dashboard_view <- empty list
+44:    for i <- 0 to length(assigned_queries) - 1
+45:    do
+46:        current_query <- assigned_queries[i]
+47:        student_details <- initialize new dictionary
+48:        // Resolve student details within an isolated try-catch to prevent dashboard failure
+49:        try
+50:            student_sql <- "SELECT name, email, department_id FROM USERS WHERE user_id = ?"
+51:            student_record <- executeParameterizedQuery(student_sql, [current_query.student_id])
+52:            if student_record is not empty
+53:            then
+54:                student_details["name"] <- student_record.name
+55:                student_details["email"] <- student_record.email
+56:                student_details["department_id"] <- student_record.department_id
+57:            else
+58:                student_details["name"] <- "Unknown Student"
+59:                student_details["email"] <- "Unknown Email"
+60:                student_details["department_id"] <- "Unknown"
+61:            end if
+62:        catch DatabaseException as db_err
+63:            logError("Warning: Failed to load student details for query " + current_query.query_id)
+64:            student_details["name"] <- "Data unavailable"
+65:            student_details["email"] <- "Data unavailable"
+66:            student_details["department_id"] <- "Data unavailable"
+67:        end try
+68:        // 5. Construct Compiled Record
+69:        compiled_record <- initialize new dictionary
+70:        compiled_record["query_details"] <- current_query
+71:        compiled_record["student_info"] <- student_details
 72:        // Append to final view array
 73:        insert compiled_record into tic_dashboard_view at index i
 74:    end for
-75:    
-76:    return success "TIC dashboard data retrieved successfully", tic_dashboard_view
-77: end procedure
+75:    return success "TIC dashboard data retrieved successfully", tic_dashboard_view
+76: end procedure

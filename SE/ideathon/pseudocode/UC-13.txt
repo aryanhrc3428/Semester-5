@@ -1,73 +1,71 @@
 1: procedure TICRequestDocument(tic_id, query_id, doc_note)
 2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if tic_id is null or query_id is null or doc_note is null then
-4:         return error "Validation Failed: Parameters cannot be null"
-5:     end if
-6:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(doc_note) != "string" then
-7:         return error "Validation Failed: Invalid parameter data types"
-8:     end if
-9:     if length(doc_note) < 5 or length(doc_note) > 1000 then
-10:        return error "Validation Failed: Document request note length out of bounds"
-11:    end if
-12:
-13:    // 2. Strict Role-Based Access Control (RBAC) Validation
-14:    try
-15:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-16:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-17:        if role_record is empty or role_record.role_name != "TIC" then
-18:            return error "Security Error: Unauthorized access. TIC privileges required."
-19:        end if
-20:    catch DatabaseException as db_err
-21:        logError(db_err)
-22:        return error "System Error: Unable to validate permissions"
-23:    end try
-24:
-25:    // 3. Explicit Ownership and State Validation (IDOR Prevention)
-26:    try
-27:        query_check <- "SELECT assigned_tic, student_id, status FROM D3_QUERIES WHERE query_id = ?"
-28:        target_query <- executeParameterizedQuery(query_check, [query_id])
-29:        
-30:        if target_query is empty then
-31:            return error "Database Error: Target query reference not found"
-32:        end if
-33:        // Ensure the TIC attempting to request documents actually owns the ticket
-34:        if target_query.assigned_tic != tic_id then
-35:            return error "Security Error: Unauthorized. You can only manage queries explicitly assigned to you."
-36:        end if
-37:        // Prevent requesting documents on closed queries
-38:        if target_query.status = "Resolved" or target_query.status = "Closed" then
-39:            return error "State Error: Cannot request documents for a closed or resolved query."
-40:        end if
-41:    catch DatabaseException as db_err
-42:        logError(db_err)
-43:        return error "System Error: Unable to validate query ownership and state"
-44:    end try
-45:
-46:    // 4. Secure Database Transaction for State Transition and Audit
-47:    current_time <- getSystemTimestamp()
-48:    try
-49:        beginTransaction()
-50:        
-51:        // Assuming 'doc_request_note' is a dedicated field or stored in a generic 'status_note' column
-52:        update_sql <- "UPDATE D3_QUERIES SET status = ?, doc_request_note = ?, updated_at = ? WHERE query_id = ?"
-53:        executeParameterizedUpdate(update_sql, ["Documents Required", doc_note, current_time, query_id])
-54:        
-55:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
-56:        executeParameterizedInsert(audit_sql, [tic_id, "Request Document", "Query", query_id, current_time])
-57:        
+3:     if tic_id is null or query_id is null or doc_note is null
+4:     then
+5:         return error "Validation Failed: Parameters cannot be null"
+6:     end if
+7:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(doc_note) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid parameter data types"
+10:    end if
+11:    if length(doc_note) < 5 or length(doc_note) > 1000
+12:    then
+13:        return error "Validation Failed: Document request note length out of bounds"
+14:    end if
+15:    // 2. Strict Role-Based Access Control (RBAC) Validation
+16:    try
+17:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+18:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+19:        if role_record is empty or role_record.role_name != "TIC"
+20:        then
+21:            return error "Security Error: Unauthorized access. TIC privileges required."
+22:        end if
+23:    catch DatabaseException as db_err
+24:        logError(db_err)
+25:        return error "System Error: Unable to validate permissions"
+26:    end try
+27:    // 3. Explicit Ownership and State Validation (IDOR Prevention)
+28:    try
+29:        query_check <- "SELECT assigned_tic, student_id, status FROM D3_QUERIES WHERE query_id = ?"
+30:        target_query <- executeParameterizedQuery(query_check, [query_id])
+31:        if target_query is empty
+32:        then
+33:            return error "Database Error: Target query reference not found"
+34:        end if
+35:        // Ensure the TIC attempting to request documents actually owns the ticket
+36:        if target_query.assigned_tic != tic_id
+37:        then
+38:            return error "Security Error: Unauthorized. You can only manage queries explicitly assigned to you."
+39:        end if
+40:        // Prevent requesting documents on closed queries
+41:        if target_query.status = "Resolved" or target_query.status = "Closed"
+42:        then
+43:            return error "State Error: Cannot request documents for a closed or resolved query."
+44:        end if
+45:    catch DatabaseException as db_err
+46:        logError(db_err)
+47:        return error "System Error: Unable to validate query ownership and state"
+48:    end try
+49:    // 4. Secure Database Transaction for State Transition and Audit
+50:    current_time <- getSystemTimestamp()
+51:    try
+52:        beginTransaction()
+53:        // Assuming 'doc_request_note' is a dedicated field or stored in a generic 'status_note' column
+54:        update_sql <- "UPDATE D3_QUERIES SET status = ?, doc_request_note = ?, updated_at = ? WHERE query_id = ?"
+55:        executeParameterizedUpdate(update_sql, ["Documents Required", doc_note, current_time, query_id])
+56:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+57:        executeParameterizedInsert(audit_sql, [tic_id, "Request Document", "Query", query_id, current_time])
 58:        commitTransaction()
 59:    catch DatabaseException as db_err
 60:        rollbackTransaction()
 61:        logError(db_err)
 62:        return error "Database Error: Failed to update query state and commit audit log"
 63:    end try
-64:
-65:    // 5. Fire-and-Forget Asynchronous Notification
-66:    try
-67:        call DispatchNotificationAsync(target_query.student_id, "Document Required", query_id)
-68:    catch NetworkException as net_err
-69:        logError("Warning: Failed to dispatch document request notification to student for query " + query_id)
-70:    end try
-71:
-72:    return success "Document request successfully logged and student notified", query_id
-73: end procedure
+64:    // 5. Fire-and-Forget Asynchronous Notification
+65:    try
+66:        call DispatchNotificationAsync(target_query.student_id, "Document Required", query_id)
+67:    catch NetworkException as net_err
+68:        logError("Warning: Failed to dispatch document request notification to student for query " + query_id)
+69:    end try
+70:    return success "Document request successfully logged and student notified", query_id
+71: end procedure

@@ -1,75 +1,72 @@
 1: procedure ForwardQueryToTIC(admin_id, query_id, tic_id)
 2:     // 1. Initial Type and Null Validation
-3:     if admin_id is null or query_id is null or tic_id is null then
-4:         return error "Validation Failed: Parameters cannot be null"
-5:     end if
-6:     if typeof(admin_id) != "string" or typeof(query_id) != "string" or typeof(tic_id) != "string" then
-7:         return error "Validation Failed: Invalid parameter data types"
-8:     end if
-9:
-10:    // 2. Caller RBAC Validation (Must be Admin)
-11:    try
-12:        admin_rbac <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-13:        admin_record <- executeParameterizedQuery(admin_rbac, [admin_id])
-14:        if admin_record is empty or admin_record.role_name != "Admin" then
-15:            return error "Security Error: Unauthorized access. Admin privileges required."
-16:        end if
-17:    catch DatabaseException as db_err
-18:        logError(db_err)
-19:        return error "System Error: Unable to validate caller permissions"
-20:    end try
-21:
-22:    // 3. Target User Validation (Crucial Security Check: Must be TIC)
-23:    try
-24:        tic_rbac <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-25:        tic_record <- executeParameterizedQuery(tic_rbac, [tic_id])
-26:        if tic_record is empty then
-27:            return error "Database Error: Target user identity not found"
-28:        end if
-29:        if tic_record.role_name != "TIC" then
-30:            return error "Security Error: Cannot assign query. Target user is not a Teacher-in-Charge."
-31:        end if
-32:    catch DatabaseException as db_err
-33:        logError(db_err)
-34:        return error "System Error: Unable to validate target user role"
-35:    end try
-36:
-37:    // 4. Relational Integrity: Validate Query Existence
-38:    try
-39:        query_check <- "SELECT status FROM D3_QUERIES WHERE query_id = ?"
-40:        target_query <- executeParameterizedQuery(query_check, [query_id])
-41:        if target_query is empty then
-42:            return error "Database Error: Target query reference not found"
-43:        end if
-44:    catch DatabaseException as db_err
-45:        logError(db_err)
-46:        return error "System Error: Unable to validate query reference"
-47:    end try
-48:
-49:    // 5. Secure Database Transaction for Assignment and Audit
-50:    current_time <- getSystemTimestamp()
-51:    try
-52:        beginTransaction()
-53:        
-54:        update_sql <- "UPDATE D3_QUERIES SET assigned_tic = ?, status = ?, updated_at = ? WHERE query_id = ?"
-55:        executeParameterizedUpdate(update_sql, [tic_id, "Assigned to TIC", current_time, query_id])
-56:        
+3:     if admin_id is null or query_id is null or tic_id is null
+4:     then
+5:         return error "Validation Failed: Parameters cannot be null"
+6:     end if
+7:     if typeof(admin_id) != "string" or typeof(query_id) != "string" or typeof(tic_id) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid parameter data types"
+10:    end if
+11:    // 2. Caller RBAC Validation (Must be Admin)
+12:    try
+13:        admin_rbac <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+14:        admin_record <- executeParameterizedQuery(admin_rbac, [admin_id])
+15:        if admin_record is empty or admin_record.role_name != "Admin"
+16:        then
+17:            return error "Security Error: Unauthorized access. Admin privileges required."
+18:        end if
+19:    catch DatabaseException as db_err
+20:        logError(db_err)
+21:        return error "System Error: Unable to validate caller permissions"
+22:    end try
+23:    // 3. Target User Validation (Crucial Security Check: Must be TIC)
+24:    try
+25:        tic_rbac <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+26:        tic_record <- executeParameterizedQuery(tic_rbac, [tic_id])
+27:        if tic_record is empty
+28:        then
+29:            return error "Database Error: Target user identity not found"
+30:        end if
+31:        if tic_record.role_name != "TIC"
+32:        then
+33:            return error "Security Error: Cannot assign query. Target user is not a Teacher-in-Charge."
+34:        end if
+35:    catch DatabaseException as db_err
+36:        logError(db_err)
+37:        return error "System Error: Unable to validate target user role"
+38:    end try
+39:    // 4. Relational Integrity: Validate Query Existence
+40:    try
+41:        query_check <- "SELECT status FROM D3_QUERIES WHERE query_id = ?"
+42:        target_query <- executeParameterizedQuery(query_check, [query_id])
+43:        if target_query is empty
+44:        then
+45:            return error "Database Error: Target query reference not found"
+46:        end if
+47:    catch DatabaseException as db_err
+48:        logError(db_err)
+49:        return error "System Error: Unable to validate query reference"
+50:    end try
+51:    // 5. Secure Database Transaction for Assignment and Audit
+52:    current_time <- getSystemTimestamp()
+53:    try
+54:        beginTransaction()
+55:        update_sql <- "UPDATE D3_QUERIES SET assigned_tic = ?, status = ?, updated_at = ? WHERE query_id = ?"
+56:        executeParameterizedUpdate(update_sql, [tic_id, "Assigned to TIC", current_time, query_id])
 57:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
 58:        executeParameterizedInsert(audit_sql, [admin_id, "Forward to TIC", "Query", query_id, current_time])
-59:        
-60:        commitTransaction()
-61:    catch DatabaseException as db_err
-62:        rollbackTransaction()
-63:        logError(db_err)
-64:        return error "Database Error: Failed to assign query and commit audit log"
-65:    end try
-66:
-67:    // 6. Fire-and-Forget Asynchronous Notification
-68:    try
-69:        call DispatchNotificationAsync(tic_id, "Query Assigned", query_id)
-70:    catch NetworkException as net_err
-71:        logError("Warning: Failed to dispatch assignment notification to TIC for query " + query_id)
-72:    end try
-73:
-74:    return success "Query successfully forwarded to TIC", query_id
-75: end procedure
+59:        commitTransaction()
+60:    catch DatabaseException as db_err
+61:        rollbackTransaction()
+62:        logError(db_err)
+63:        return error "Database Error: Failed to assign query and commit audit log"
+64:    end try
+65:    // 6. Fire-and-Forget Asynchronous Notification
+66:    try
+67:        call DispatchNotificationAsync(tic_id, "Query Assigned", query_id)
+68:    catch NetworkException as net_err
+69:        logError("Warning: Failed to dispatch assignment notification to TIC for query " + query_id)
+70:    end try
+71:    return success "Query successfully forwarded to TIC", query_id
+72: end procedure

@@ -1,85 +1,81 @@
 1: procedure TICResolveQuery(tic_id, query_id, resolution_text, add_to_kb_flag)
 2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if tic_id is null or query_id is null or resolution_text is null or add_to_kb_flag is null then
-4:         return error "Validation Failed: Parameters cannot be null"
-5:     end if
-6:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(resolution_text) != "string" or typeof(add_to_kb_flag) != "boolean" then
-7:         return error "Validation Failed: Invalid parameter data types"
-8:     end if
-9:     if length(resolution_text) < 10 or length(resolution_text) > 5000 then
-10:        return error "Validation Failed: Resolution text length out of bounds"
-11:    end if
-12:
-13:    // 2. Strict Role-Based Access Control (RBAC) Validation
-14:    try
-15:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-16:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-17:        if role_record is empty or role_record.role_name != "TIC" then
-18:            return error "Security Error: Unauthorized access. TIC privileges required."
-19:        end if
-20:    catch DatabaseException as db_err
-21:        logError(db_err)
-22:        return error "System Error: Unable to validate permissions"
-23:    end try
-24:
-25:    // 3. Explicit Ownership and Integrity Validation (IDOR Prevention)
-26:    try
-27:        query_check <- "SELECT assigned_tic, student_id, description, category FROM D3_QUERIES WHERE query_id = ?"
-28:        target_query <- executeParameterizedQuery(query_check, [query_id])
-29:        
-30:        if target_query is empty then
-31:            return error "Database Error: Target query reference not found"
-32:        end if
-33:        // Crucial check: Ensure the TIC attempting to resolve actually owns the ticket
-34:        if target_query.assigned_tic != tic_id then
-35:            return error "Security Error: Unauthorized. You can only resolve queries explicitly assigned to you."
-36:        end if
-37:    catch DatabaseException as db_err
-38:        logError(db_err)
-39:        return error "System Error: Unable to validate query ownership"
-40:    end try
-41:
-42:    // 4. Secure Database Transaction for Resolution and Audit
-43:    current_time <- getSystemTimestamp()
-44:    try
-45:        beginTransaction()
-46:        
-47:        update_sql <- "UPDATE D3_QUERIES SET status = ?, resolution = ?, resolved_by = ?, updated_at = ? WHERE query_id = ?"
-48:        executeParameterizedUpdate(update_sql, ["Resolved", resolution_text, tic_id, current_time, query_id])
-49:        
+3:     if tic_id is null or query_id is null or resolution_text is null or add_to_kb_flag is null
+4:     then
+5:         return error "Validation Failed: Parameters cannot be null"
+6:     end if
+7:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(resolution_text) != "string" or typeof(add_to_kb_flag) != "boolean"
+8:     then
+9:         return error "Validation Failed: Invalid parameter data types"
+10:    end if
+11:    if length(resolution_text) < 10 or length(resolution_text) > 5000
+12:    then
+13:        return error "Validation Failed: Resolution text length out of bounds"
+14:    end if
+15:    // 2. Strict Role-Based Access Control (RBAC) Validation
+16:    try
+17:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+18:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+19:        if role_record is empty or role_record.role_name != "TIC"
+20:        then
+21:            return error "Security Error: Unauthorized access. TIC privileges required."
+22:        end if
+23:    catch DatabaseException as db_err
+24:        logError(db_err)
+25:        return error "System Error: Unable to validate permissions"
+26:    end try
+27:    // 3. Explicit Ownership and Integrity Validation (IDOR Prevention)
+28:    try
+29:        query_check <- "SELECT assigned_tic, student_id, description, category FROM D3_QUERIES WHERE query_id = ?"
+30:        target_query <- executeParameterizedQuery(query_check, [query_id])
+31:        if target_query is empty
+32:        then
+33:            return error "Database Error: Target query reference not found"
+34:        end if
+35:        // Crucial check: Ensure the TIC attempting to resolve actually owns the ticket
+36:        if target_query.assigned_tic != tic_id
+37:        then
+38:            return error "Security Error: Unauthorized. You can only resolve queries explicitly assigned to you."
+39:        end if
+40:    catch DatabaseException as db_err
+41:        logError(db_err)
+42:        return error "System Error: Unable to validate query ownership"
+43:    end try
+44:    // 4. Secure Database Transaction for Resolution and Audit
+45:    current_time <- getSystemTimestamp()
+46:    try
+47:        beginTransaction()
+48:        update_sql <- "UPDATE D3_QUERIES SET status = ?, resolution = ?, resolved_by = ?, updated_at = ? WHERE query_id = ?"
+49:        executeParameterizedUpdate(update_sql, ["Resolved", resolution_text, tic_id, current_time, query_id])
 50:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
 51:        executeParameterizedInsert(audit_sql, [tic_id, "Resolve", "Query", query_id, current_time])
-52:        
-53:        commitTransaction()
-54:    catch DatabaseException as db_err
-55:        rollbackTransaction()
-56:        logError(db_err)
-57:        return error "Database Error: Failed to resolve query and commit audit log"
-58:    end try
-59:
-60:    // 5. Conditional Knowledge Base Escalation (Isolated from main transaction)
-61:    if add_to_kb_flag = true then
-62:        try
-63:            kb_payload <- initialize new dictionary
-64:            kb_payload["title"] <- target_query.description
-65:            kb_payload["content"] <- resolution_text
-66:            kb_payload["category"] <- target_query.category
-67:            kb_payload["source"] <- concat("TIC Resolution - ", tic_id)
-68:            
-69:            // Call procedure 6.0 seamlessly
-70:            call KnowledgeBaseManagement(tic_id, "Create", kb_payload)
-71:        catch SystemException as sys_err
-72:            // Log failure but do not fail the overall query resolution
-73:            logError("Warning: Failed to add resolution to Knowledge Base for query " + query_id)
-74:        end try
-75:    end if
-76:
-77:    // 6. Fire-and-Forget Asynchronous Notification
-78:    try
-79:        call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
-80:    catch NetworkException as net_err
-81:        logError("Warning: Failed to dispatch resolution notification to student for query " + query_id)
-82:    end try
-83:
-84:    return success "Query successfully resolved", query_id
-85: end procedure
+52:        commitTransaction()
+53:    catch DatabaseException as db_err
+54:        rollbackTransaction()
+55:        logError(db_err)
+56:        return error "Database Error: Failed to resolve query and commit audit log"
+57:    end try
+58:    // 5. Conditional Knowledge Base Escalation (Isolated from main transaction)
+59:    if add_to_kb_flag = true
+60:    then
+61:        try
+62:            kb_payload <- initialize new dictionary
+63:            kb_payload["title"] <- target_query.description
+64:            kb_payload["content"] <- resolution_text
+65:            kb_payload["category"] <- target_query.category
+66:            kb_payload["source"] <- concat("TIC Resolution - ", tic_id)
+67:            // Call procedure 6.0 seamlessly
+68:            call KnowledgeBaseManagement(tic_id, "Create", kb_payload)
+69:        catch SystemException as sys_err
+70:            // Log failure but do not fail the overall query resolution
+71:            logError("Warning: Failed to add resolution to Knowledge Base for query " + query_id)
+72:        end try
+73:    end if
+74:    // 6. Fire-and-Forget Asynchronous Notification
+75:    try
+76:        call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
+77:    catch NetworkException as net_err
+78:        logError("Warning: Failed to dispatch resolution notification to student for query " + query_id)
+79:    end try
+80:    return success "Query successfully resolved", query_id
+81: end procedure

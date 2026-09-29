@@ -1,80 +1,76 @@
 1: procedure AdminResolveQuery(admin_id, query_id, resolution_text, add_to_kb_flag)
 2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if admin_id is null or query_id is null or resolution_text is null or add_to_kb_flag is null then
-4:         return error "Validation Failed: Parameters cannot be null"
-5:     end if
-6:     if typeof(admin_id) != "string" or typeof(query_id) != "string" or typeof(resolution_text) != "string" or typeof(add_to_kb_flag) != "boolean" then
-7:         return error "Validation Failed: Invalid parameter data types"
-8:     end if
-9:     if length(resolution_text) < 10 or length(resolution_text) > 5000 then
-10:        return error "Validation Failed: Resolution text length out of bounds"
-11:    end if
-12:
-13:    // 2. Strict Role-Based Access Control (RBAC) Validation
-14:    try
-15:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-16:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
-17:        if role_record is empty or role_record.role_name != "Admin" then
-18:            return error "Security Error: Unauthorized access. Admin privileges required."
-19:        end if
-20:    catch DatabaseException as db_err
-21:        logError(db_err)
-22:        return error "System Error: Unable to validate permissions"
-23:    end try
-24:
-25:    // 3. Relational Integrity: Validate Query Existence
-26:    try
-27:        query_check <- "SELECT student_id, description, category FROM D3_QUERIES WHERE query_id = ?"
-28:        target_query <- executeParameterizedQuery(query_check, [query_id])
-29:        if target_query is empty then
-30:            return error "Database Error: Target query reference not found"
-31:        end if
-32:    catch DatabaseException as db_err
-33:        logError(db_err)
-34:        return error "System Error: Unable to validate query reference"
-35:    end try
-36:
-37:    // 4. Secure Database Transaction for Resolution and Audit
-38:    current_time <- getSystemTimestamp()
-39:    try
-40:        beginTransaction()
-41:        
-42:        update_sql <- "UPDATE D3_QUERIES SET status = ?, resolution = ?, resolved_by = ?, updated_at = ? WHERE query_id = ?"
-43:        executeParameterizedUpdate(update_sql, ["Resolved", resolution_text, admin_id, current_time, query_id])
-44:        
+3:     if admin_id is null or query_id is null or resolution_text is null or add_to_kb_flag is null
+4:     then
+5:         return error "Validation Failed: Parameters cannot be null"
+6:     end if
+7:     if typeof(admin_id) != "string" or typeof(query_id) != "string" or typeof(resolution_text) != "string" or typeof(add_to_kb_flag) != "boolean"
+8:     then
+9:         return error "Validation Failed: Invalid parameter data types"
+10:    end if
+11:    if length(resolution_text) < 10 or length(resolution_text) > 5000
+12:    then
+13:        return error "Validation Failed: Resolution text length out of bounds"
+14:    end if
+15:    // 2. Strict Role-Based Access Control (RBAC) Validation
+16:    try
+17:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+18:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
+19:        if role_record is empty or role_record.role_name != "Admin"
+20:        then
+21:            return error "Security Error: Unauthorized access. Admin privileges required."
+22:        end if
+23:    catch DatabaseException as db_err
+24:        logError(db_err)
+25:        return error "System Error: Unable to validate permissions"
+26:    end try
+27:    // 3. Relational Integrity: Validate Query Existence
+28:    try
+29:        query_check <- "SELECT student_id, description, category FROM D3_QUERIES WHERE query_id = ?"
+30:        target_query <- executeParameterizedQuery(query_check, [query_id])
+31:        if target_query is empty
+32:        then
+33:            return error "Database Error: Target query reference not found"
+34:        end if
+35:    catch DatabaseException as db_err
+36:        logError(db_err)
+37:        return error "System Error: Unable to validate query reference"
+38:    end try
+39:    // 4. Secure Database Transaction for Resolution and Audit
+40:    current_time <- getSystemTimestamp()
+41:    try
+42:        beginTransaction()
+43:        update_sql <- "UPDATE D3_QUERIES SET status = ?, resolution = ?, resolved_by = ?, updated_at = ? WHERE query_id = ?"
+44:        executeParameterizedUpdate(update_sql, ["Resolved", resolution_text, admin_id, current_time, query_id])
 45:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
 46:        executeParameterizedInsert(audit_sql, [admin_id, "Resolve", "Query", query_id, current_time])
-47:        
-48:        commitTransaction()
-49:    catch DatabaseException as db_err
-50:        rollbackTransaction()
-51:        logError(db_err)
-52:        return error "Database Error: Failed to resolve query and commit audit log"
-53:    end try
-54:
-55:    // 5. Conditional Knowledge Base Escalation (Isolated from main transaction)
-56:    if add_to_kb_flag = true then
-57:        try
-58:            kb_payload <- initialize new dictionary
-59:            kb_payload["title"] <- target_query.description
-60:            kb_payload["content"] <- resolution_text
-61:            kb_payload["category"] <- target_query.category
-62:            kb_payload["source"] <- "Admin Resolution"
-63:            
-64:            // Call procedure 6.0 seamlessly
-65:            call KnowledgeBaseManagement(admin_id, "Create", kb_payload)
-66:        catch SystemException as sys_err
-67:            // Log failure but do not fail the overall query resolution
-68:            logError("Warning: Failed to add resolution to Knowledge Base for query " + query_id)
-69:        end try
-70:    end if
-71:
-72:    // 6. Fire-and-Forget Asynchronous Notification
-73:    try
-74:        call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
-75:    catch NetworkException as net_err
-76:        logError("Warning: Failed to dispatch resolution notification to student for query " + query_id)
-77:    end try
-78:
-79:    return success "Query successfully resolved", query_id
-80: end procedure
+47:        commitTransaction()
+48:    catch DatabaseException as db_err
+49:        rollbackTransaction()
+50:        logError(db_err)
+51:        return error "Database Error: Failed to resolve query and commit audit log"
+52:    end try
+53:    // 5. Conditional Knowledge Base Escalation (Isolated from main transaction)
+54:    if add_to_kb_flag = true
+55:    then
+56:        try
+57:            kb_payload <- initialize new dictionary
+58:            kb_payload["title"] <- target_query.description
+59:            kb_payload["content"] <- resolution_text
+60:            kb_payload["category"] <- target_query.category
+61:            kb_payload["source"] <- "Admin Resolution"
+62:            // Call procedure 6.0 seamlessly
+63:            call KnowledgeBaseManagement(admin_id, "Create", kb_payload)
+64:        catch SystemException as sys_err
+65:            // Log failure but do not fail the overall query resolution
+66:            logError("Warning: Failed to add resolution to Knowledge Base for query " + query_id)
+67:        end try
+68:    end if
+69:    // 6. Fire-and-Forget Asynchronous Notification
+70:    try
+71:        call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
+72:    catch NetworkException as net_err
+73:        logError("Warning: Failed to dispatch resolution notification to student for query " + query_id)
+74:    end try
+75:    return success "Query successfully resolved", query_id
+76: end procedure

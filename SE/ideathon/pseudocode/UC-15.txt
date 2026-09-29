@@ -1,79 +1,79 @@
 1: procedure ViewTimetableAvailability(tic_id, target_date)
 2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if tic_id is null or target_date is null then
-4:         return error "Validation Failed: Parameters cannot be null"
-5:     end if
-6:     if typeof(tic_id) != "string" or typeof(target_date) != "string" then
-7:         return error "Validation Failed: Invalid parameter data types"
-8:     end if
-9:     // Explicitly validate ISO 8601 Date Format (YYYY-MM-DD) Length
-10:    if length(target_date) != 10 then
-11:        return error "Validation Failed: Invalid date format, expected YYYY-MM-DD"
-12:    end if
-13:
-14:    // 2. Strict Role-Based Access Control (RBAC) Validation
-15:    try
-16:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-17:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-18:        if role_record is empty or role_record.role_name != "TIC" then
-19:            return error "Security Error: Unauthorized access. TIC privileges required."
-20:        end if
-21:    catch DatabaseException as db_err
-22:        logError(db_err)
-23:        return error "System Error: Unable to validate permissions"
-24:    end try
-25:
-26:    // 3. Resilient External Timetable Fetch
-27:    base_schedule <- empty list
-28:    try
-29:        // Returns an array of time slots, e.g., [{start_time: "09:00", end_time: "10:00"}, ...]
-30:        base_schedule <- call ExternalTimetableService_Fetch(tic_id, target_date)
-31:        if base_schedule is null then
-32:            return error "API Error: Timetable service returned a null schedule"
-33:        end if
-34:    catch NetworkException as net_err
-35:        logError(net_err)
-36:        return error "System Error: External timetable service is temporarily unavailable"
-37:    end try
-38:
-39:    // If the base schedule is empty (e.g., weekend/holiday), return early
-40:    if length(base_schedule) = 0 then
-41:        return success "No slots available on this date", empty list
-42:    end if
-43:
-44:    // 4. Secure Database Retrieval of Existing Bookings
-45:    booked_meetings <- empty list
-46:    try
-47:        // Fetch only active meetings to prevent cancelled ones from blocking slots
-48:        meeting_query <- "SELECT start_time, end_time FROM D5_MEETINGS WHERE assigned_tic = ? AND meeting_date = ? AND status != ?"
-49:        booked_meetings <- executeParameterizedQuery(meeting_query, [tic_id, target_date, "Cancelled"])
-50:    catch DatabaseException as db_err
-51:        logError(db_err)
-52:        return error "Database Error: Failed to retrieve existing meeting bookings"
-53:    end try
-54:
-55:    // 5. Explicit Algorithmic Conflict Resolution (Nested Loops)
-56:    available_slots <- empty list
-57:    
-58:    for i <- 0 to length(base_schedule) - 1 do
-59:        current_slot <- base_schedule[i]
-60:        has_conflict <- false
-61:        
-62:        for j <- 0 to length(booked_meetings) - 1 do
-63:            booked_slot <- booked_meetings[j]
-64:            
+3:     if tic_id is null or target_date is null
+4:     then
+5:         return error "Validation Failed: Parameters cannot be null"
+6:     end if
+7:     if typeof(tic_id) != "string" or typeof(target_date) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid parameter data types"
+10:    end if
+11:    // Explicitly validate ISO 8601 Date Format (YYYY-MM-DD) Length
+12:    if length(target_date) != 10
+13:    then
+14:        return error "Validation Failed: Invalid date format, expected YYYY-MM-DD"
+15:    end if
+16:    // 2. Strict Role-Based Access Control (RBAC) Validation
+17:    try
+18:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+19:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+20:        if role_record is empty or role_record.role_name != "TIC"
+21:        then
+22:            return error "Security Error: Unauthorized access. TIC privileges required."
+23:        end if
+24:    catch DatabaseException as db_err
+25:        logError(db_err)
+26:        return error "System Error: Unable to validate permissions"
+27:    end try
+28:    // 3. Resilient External Timetable Fetch
+29:    base_schedule <- empty list
+30:    try
+31:        // Returns an array of time slots, e.g., [{start_time: "09:00", end_time: "10:00"}, ...]
+32:        base_schedule <- call ExternalTimetableService_Fetch(tic_id, target_date)
+33:        if base_schedule is null
+34:        then
+35:            return error "API Error: Timetable service returned a null schedule"
+36:        end if
+37:    catch NetworkException as net_err
+38:        logError(net_err)
+39:        return error "System Error: External timetable service is temporarily unavailable"
+40:    end try
+41:    // If the base schedule is empty (e.g., weekend/holiday), return early
+42:    if length(base_schedule) = 0
+43:    then
+44:        return success "No slots available on this date", empty list
+45:    end if
+46:    // 4. Secure Database Retrieval of Existing Bookings
+47:    booked_meetings <- empty list
+48:    try
+49:        // Fetch only active meetings to prevent cancelled ones from blocking slots
+50:        meeting_query <- "SELECT start_time, end_time FROM D5_MEETINGS WHERE assigned_tic = ? AND meeting_date = ? AND status != ?"
+51:        booked_meetings <- executeParameterizedQuery(meeting_query, [tic_id, target_date, "Cancelled"])
+52:    catch DatabaseException as db_err
+53:        logError(db_err)
+54:        return error "Database Error: Failed to retrieve existing meeting bookings"
+55:    end try
+56:    // 5. Explicit Algorithmic Conflict Resolution (Nested Loops)
+57:    available_slots <- empty list
+58:    for i <- 0 to length(base_schedule) - 1
+59:    do
+60:        current_slot <- base_schedule[i]
+61:        has_conflict <- false
+62:        for j <- 0 to length(booked_meetings) - 1
+63:        do
+64:            booked_slot <- booked_meetings[j]
 65:            // Explicit Time Overlap Math: Two intervals overlap if (Start1 < End2) AND (End1 > Start2)
-66:            if (current_slot.start_time < booked_slot.end_time) and (current_slot.end_time > booked_slot.start_time) then
-67:                has_conflict <- true
-68:                break // Optimization: Exit inner loop immediately upon finding first conflict
-69:            end if
-70:        end for
-71:        
+66:            if (current_slot.start_time < booked_slot.end_time) and (current_slot.end_time > booked_slot.start_time)
+67:            then
+68:                has_conflict <- true
+69:                break // Optimization: Exit inner loop immediately upon finding first conflict
+70:            end if
+71:        end for
 72:        // If the inner loop finishes without tripping the conflict flag, the slot is free
-73:        if has_conflict = false then
-74:            insert current_slot into available_slots
-75:        end if
-76:    end for
-77:
+73:        if has_conflict = false
+74:        then
+75:            insert current_slot into available_slots
+76:        end if
+77:    end for
 78:    return success "Timetable availability calculated successfully", available_slots
 79: end procedure

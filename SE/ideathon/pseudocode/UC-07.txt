@@ -1,95 +1,99 @@
 1: procedure DispatchNotificationAsync(target, event_type, reference_id)
 2:     // 1. Initial Type and Null Validation
-3:     if target is null or event_type is null or reference_id is null then
-4:         return error "Validation Failed: Inputs cannot be null"
-5:     end if
-6:     if typeof(target) != "string" or typeof(event_type) != "string" then
-7:         return error "Validation Failed: Invalid data types"
-8:     end if
-9:
-10:    // 2. Validate Event Type
-11:    valid_events <- array of strings {"New Query Escalated", "Query Assigned", "Query Resolved", "Document Required", "Document Uploaded", "Document Accepted", "Document Rejected", "Meeting Scheduled", "Meeting Cancelled"}
-12:    is_valid_event <- false
-13:    for i <- 0 to length(valid_events) - 1 do
-14:        if event_type = valid_events[i] then
-15:            is_valid_event <- true
-16:            break
-17:        end if
-18:    end for
-19:    if is_valid_event = false then
-20:        return error "Validation Failed: Unrecognized event type"
-21:    end if
-22:
-23:    // 3. Resolve Target to Email Addresses
-24:    recipient_emails <- empty list
-25:    try
-26:        // Check if target is a Role
-27:        if target = "Admin" or target = "TIC" or target = "Staff" then
-28:            role_query <- "SELECT U.email FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE R.role_name = ?"
-29:            // If Staff, we need both Admin and TIC
-30:            if target = "Staff" then
-31:                 role_query <- "SELECT U.email FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE R.role_name IN ('Admin', 'TIC')"
-32:                 role_records <- executeParameterizedQuery(role_query, [])
-33:            else
-34:                 role_records <- executeParameterizedQuery(role_query, [target])
-35:            end if
-36:            
-37:            for each record in role_records do
-38:                append record.email to recipient_emails
-39:            end for
-40:        // Otherwise, assume target is a specific User ID
-41:        else
-42:            user_query <- "SELECT email FROM USERS WHERE user_id = ?"
-43:            user_record <- executeParameterizedQuery(user_query, [target])
-44:            if user_record is not empty then
-45:                append user_record.email to recipient_emails
-46:            end if
-47:        end if
-48:    catch DatabaseException as db_err
-49:        logError(db_err)
-50:        return error "Database Error: Failed to resolve target email addresses"
-51:    end try
-52:
-53:    if length(recipient_emails) = 0 then
-54:        return error "Resolution Error: No valid email addresses found for target"
-55:    end if
-56:
-57:    // 4. Construct Email Content (Template Builder Mock)
-58:    email_subject <- concat("System Notification: ", event_type)
-59:    email_body <- concat("An event '", event_type, "' has occurred concerning reference ID: ", reference_id, ". Please log in to your dashboard to view details.")
-60:    
-61:    // 5. Dispatch Loop with Individual Error Handling
-62:    success_count <- 0
-63:    failure_count <- 0
-64:    current_time <- getSystemTimestamp()
-65:    
-66:    for each email_address in recipient_emails do
-67:        try
-68:            // Simulating external email provider call (e.g., Resend/SendGrid)
-69:            api_response <- call ExternalEmailService(email_address, email_subject, email_body)
-70:            if api_response.status_code = 200 then
-71:                success_count <- success_count + 1
-72:                
-73:                // Log successful dispatch
-74:                try
-75:                     log_query <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
-76:                     executeParameterizedInsert(log_query, ["System", concat("Email Sent to ", email_address), "Notification", reference_id, current_time])
-77:                catch DatabaseException as db_log_err
-78:                     logError("Warning: Failed to log notification success for " + email_address)
-79:                end try
-80:            else
-81:                failure_count <- failure_count + 1
-82:                logError("Email API Error: Failed to send to " + email_address + " with status " + api_response.status_code)
-83:            end if
-84:        catch NetworkException as net_err
-85:            failure_count <- failure_count + 1
-86:            logError("Network Error: Could not reach email service for " + email_address)
-87:        end try
-88:    end for
-89:
-90:    if success_count > 0 then
-91:        return success concat("Dispatched ", success_count, " notifications. Failures: ", failure_count)
-92:    else
-93:        return error "Dispatch Failed: Unable to send any notifications"
-94:    end if
-95: end procedure
+3:     if target is null or event_type is null or reference_id is null
+4:     then
+5:         return error "Validation Failed: Inputs cannot be null"
+6:     end if
+7:     if typeof(target) != "string" or typeof(event_type) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid data types"
+10:    end if
+11:    // 2. Validate Event Type
+12:    valid_events <- array of strings {"New Query Escalated", "Query Assigned", "Query Resolved", "Document Required", "Document Uploaded", "Document Accepted", "Document Rejected", "Meeting Scheduled", "Meeting Cancelled"}
+13:    is_valid_event <- false
+14:    for i <- 0 to length(valid_events) - 1
+15:    do
+16:        if event_type = valid_events[i]
+17:        then
+18:            is_valid_event <- true
+19:            break
+20:        end if
+21:    end for
+22:    if is_valid_event = false
+23:    then
+24:        return error "Validation Failed: Unrecognized event type"
+25:    end if
+26:    // 3. Resolve Target to Email Addresses
+27:    recipient_emails <- empty list
+28:    try
+29:        // Check if target is a Role
+30:        if target = "Admin" or target = "TIC" or target = "Staff"
+31:        then
+32:            role_query <- "SELECT U.email FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE R.role_name = ?"
+33:            // If Staff, we need both Admin and TIC
+34:            if target = "Staff"
+35:            then
+36:                 role_query <- "SELECT U.email FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE R.role_name IN ('Admin', 'TIC')"
+37:                 role_records <- executeParameterizedQuery(role_query, [])
+38:            else
+39:                 role_records <- executeParameterizedQuery(role_query, [target])
+40:            end if
+41:            for each record in role_records
+42:            do
+43:                append record.email to recipient_emails
+44:            end for
+45:        // Otherwise, assume target is a specific User ID
+46:        else
+47:            user_query <- "SELECT email FROM USERS WHERE user_id = ?"
+48:            user_record <- executeParameterizedQuery(user_query, [target])
+49:            if user_record is not empty
+50:            then
+51:                append user_record.email to recipient_emails
+52:            end if
+53:        end if
+54:    catch DatabaseException as db_err
+55:        logError(db_err)
+56:        return error "Database Error: Failed to resolve target email addresses"
+57:    end try
+58:    if length(recipient_emails) = 0
+59:    then
+60:        return error "Resolution Error: No valid email addresses found for target"
+61:    end if
+62:    // 4. Construct Email Content (Template Builder Mock)
+63:    email_subject <- concat("System Notification: ", event_type)
+64:    email_body <- concat("An event '", event_type, "' has occurred concerning reference ID: ", reference_id, ". Please log in to your dashboard to view details.")
+65:    // 5. Dispatch Loop with Individual Error Handling
+66:    success_count <- 0
+67:    failure_count <- 0
+68:    current_time <- getSystemTimestamp()
+69:    for each email_address in recipient_emails
+70:    do
+71:        try
+72:            // Simulating external email provider call (e.g., Resend/SendGrid)
+73:            api_response <- call ExternalEmailService(email_address, email_subject, email_body)
+74:            if api_response.status_code = 200
+75:            then
+76:                success_count <- success_count + 1
+77:                // Log successful dispatch
+78:                try
+79:                     log_query <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+80:                     executeParameterizedInsert(log_query, ["System", concat("Email Sent to ", email_address), "Notification", reference_id, current_time])
+81:                catch DatabaseException as db_log_err
+82:                     logError("Warning: Failed to log notification success for " + email_address)
+83:                end try
+84:            else
+85:                failure_count <- failure_count + 1
+86:                logError("Email API Error: Failed to send to " + email_address + " with status " + api_response.status_code)
+87:            end if
+88:        catch NetworkException as net_err
+89:            failure_count <- failure_count + 1
+90:            logError("Network Error: Could not reach email service for " + email_address)
+91:        end try
+92:    end for
+93:    if success_count > 0
+94:    then
+95:        return success concat("Dispatched ", success_count, " notifications. Failures: ", failure_count)
+96:    else
+97:        return error "Dispatch Failed: Unable to send any notifications"
+98:    end if
+99: end procedure

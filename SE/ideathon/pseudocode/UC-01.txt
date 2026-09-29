@@ -1,69 +1,70 @@
 1: procedure Authenticate(username, password)
 2:     // 1. Initial Type and Null Validation
-3:     if username is null or password is null then
-4:         return error "Validation Failed: Credentials cannot be null"
-5:     end if
-6:     if typeof(username) != "string" or typeof(password) != "string" then
-7:         return error "Validation Failed: Invalid data type"
-8:     end if
-9:     
-10:    // 2. Boundary Validation
-11:    if length(username) < 5 or length(username) > 50 then
-12:        return error "Validation Failed: Username length out of bounds"
-13:    end if
-14:    
-15:    // 3. Character Sanitization Loop
-16:    forbidden_chars <- array of characters {';', '-', '"', '''}
-17:    for i <- 0 to length(username) - 1 do
-18:        if username[i] in forbidden_chars then
-19:            return error "Validation Failed: Illegal characters detected"
-20:        end if
-21:    end for
-22:    
-23:    // 4. Resilient External Call with Error Handling
-24:    retry_count <- 0
-25:    is_authenticated <- false
-26:    auth_id <- null
-27:    while retry_count < 3 and is_authenticated = false do
-28:        try
-29:            response <- call ExternalAuthService(username, password)
-30:            if response.status_code = 200 then
-31:                is_authenticated <- true
-32:                auth_id <- response.user_identity
-33:            else
-34:                retry_count <- retry_count + 1
-35:            end if
-36:        catch NetworkException
-37:            retry_count <- retry_count + 1
-38:        end try
-39:    end while
-40:    
-41:    if is_authenticated = false then
-42:        return error "Authentication Failed: Maximum attempts exceeded or service unavailable"
-43:    end if
-44:    
-45:    // 5. Secure Parameterized Database Queries
-46:    try
-47:        query_user <- "SELECT user_id, role_id FROM USERS WHERE user_identity = ?"
-48:        user_record <- executeParameterizedQuery(query_user, [auth_id])
-49:        if user_record is empty then
-50:            return error "Database Error: User verified externally but local account missing"
-51:        end if
-52:        
-53:        query_role <- "SELECT role_name FROM ROLE WHERE role_id = ?"
-54:        role_record <- executeParameterizedQuery(query_role, [user_record.role_id])
-55:        if role_record is empty then
-56:            return error "Database Error: User lacks assigned system role"
-57:        end if
-58:        
-59:        // 6. Token Generation and Routing
-60:        session_token <- generateSecureJWT(user_record.user_id, role_record.role_name, 3600)
-61:        dashboard_url <- concat("/", role_record.role_name, "/dashboard")
-62:        
-63:        return success session_token, user_record.user_id, role_record.role_name, dashboard_url
-64:        
-65:    catch DatabaseException as db_err
-66:        logError(db_err)
-67:        return error "System Error: Unable to complete authentication transaction"
-68:    end try
-69: end procedure
+3:     if username is null or password is null
+4:     then
+5:         return error "Validation Failed: Credentials cannot be null"
+6:     end if
+7:     if typeof(username) != "string" or typeof(password) != "string"
+8:     then
+9:         return error "Validation Failed: Invalid data type"
+10:    end if
+11:    // 2. Boundary Validation
+12:    if length(username) < 5 or length(username) > 50
+13:    then
+14:        return error "Validation Failed: Username length out of bounds"
+15:    end if
+16:    // 3. Character Sanitization Loop
+17:    forbidden_chars <- array of characters {';', '-', '"', '''}
+18:    for i <- 0 to length(username) - 1
+19:    do
+20:        if username[i] in forbidden_chars
+21:        then
+22:            return error "Validation Failed: Illegal characters detected"
+23:        end if
+24:    end for
+25:    // 4. Resilient External Call with Error Handling
+26:    retry_count <- 0
+27:    is_authenticated <- false
+28:    auth_id <- null
+29:    while retry_count < 3 and is_authenticated = false
+30:    do
+31:        try
+32:            response <- call ExternalAuthService(username, password)
+33:            if response.status_code = 200
+34:            then
+35:                is_authenticated <- true
+36:                auth_id <- response.user_identity
+37:            else
+38:                retry_count <- retry_count + 1
+39:            end if
+40:        catch NetworkException
+41:            retry_count <- retry_count + 1
+42:        end try
+43:    end while
+44:    if is_authenticated = false
+45:    then
+46:        return error "Authentication Failed: Maximum attempts exceeded or service unavailable"
+47:    end if
+48:    // 5. Secure Parameterized Database Queries
+49:    try
+50:        query_user <- "SELECT user_id, role_id FROM USERS WHERE user_identity = ?"
+51:        user_record <- executeParameterizedQuery(query_user, [auth_id])
+52:        if user_record is empty
+53:        then
+54:            return error "Database Error: User verified externally but local account missing"
+55:        end if
+56:        query_role <- "SELECT role_name FROM ROLE WHERE role_id = ?"
+57:        role_record <- executeParameterizedQuery(query_role, [user_record.role_id])
+58:        if role_record is empty
+59:        then
+60:            return error "Database Error: User lacks assigned system role"
+61:        end if
+62:        // 6. Token Generation and Routing
+63:        session_token <- generateSecureJWT(user_record.user_id, role_record.role_name, 3600)
+64:        dashboard_url <- concat("/", role_record.role_name, "/dashboard")
+65:        return success session_token, user_record.user_id, role_record.role_name, dashboard_url
+66:    catch DatabaseException as db_err
+67:        logError(db_err)
+68:        return error "System Error: Unable to complete authentication transaction"
+69:    end try
+70: end procedure
