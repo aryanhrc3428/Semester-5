@@ -59,3 +59,9 @@ Understand the performance boundaries and O(n m) complexity of Brute Force.
 
 ## Sheet - 6
 1. Write a program to implement KMP string pattern matching algorithm, output must include total number of comparisons made during execution.
+
+## Sheet - 7
+1. Implement standard trie.
+2. Implement complex trie.
+3. Implement sufix trie.
+4. Implement bellman ford algorithm.
