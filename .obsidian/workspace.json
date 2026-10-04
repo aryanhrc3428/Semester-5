@@ -11,10 +11,14 @@
             "id": "7bc82c7d30e60581",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "AADS/notes/unit-1.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "unit-1"
             }
           }
         ]
@@ -186,6 +190,8 @@
   },
   "active": "7bc82c7d30e60581",
   "lastOpenFiles": [
+    "AADS/notes/unit-1.pdf",
+    "AADS/notes/unit-1.md",
     "Untitled.base",
     "GATE-CSE-2027",
     "Untitled.canvas",
