@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "AADS/notes/unit-1.md",
+                "file": "AADS/notes/test-1-questions.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "unit-1"
+              "title": "test-1-questions"
             }
           }
         ]
@@ -190,8 +190,9 @@
   },
   "active": "7bc82c7d30e60581",
   "lastOpenFiles": [
-    "AADS/notes/unit-1.pdf",
+    "AADS/notes/test-1-questions.pdf",
     "AADS/notes/unit-1.md",
+    "AADS/notes/unit-1.pdf",
     "Untitled.base",
     "GATE-CSE-2027",
     "Untitled.canvas",
