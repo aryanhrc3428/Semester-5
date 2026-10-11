@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "AADS/notes/test-1-questions.md",
+                "file": "DP/notes/DP-ini.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "test-1-questions"
+              "title": "DP-ini"
             }
           }
         ]
@@ -190,6 +190,9 @@
   },
   "active": "7bc82c7d30e60581",
   "lastOpenFiles": [
+    "DP/notes/DP-ini.pdf",
+    "DP/notes/DP-ini.md",
+    "AADS/notes/test-1-questions.md",
     "AADS/notes/test-1-questions.pdf",
     "AADS/notes/unit-1.md",
     "AADS/notes/unit-1.pdf",
