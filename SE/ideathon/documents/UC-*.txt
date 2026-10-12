@@ -1,0 +1,19 @@
+1.      S-1. Use Case: Login / Authenticate
+2.      S-2. Use Case: Ask AI Query 
+3.      S-3. Use Case: Raise New Query  
+4.      S-4. Use Case : Track Query Status 
+5.      S-5. Use Case : Upload Requested Documents
+6.      S-6. Use Case : View, Request Slot and Accept Meeting
+7.      S-7. Use Case : Receive Notifications
+
+8.      A-1. Use Case : View New Queries
+9.      A-2. Use Case : Monitor and Resolve Queries directly 
+10.     A-3. Use Case : Forward Query to TIC 
+11.     A-4. Use Case : Manage and Maintain Knowledge Base 
+
+12.     T-1. Use Case : View Assigned Queries 
+13.     T-2. Use Case : Review and Resolve departmental queries
+14.     T-3. Use Case : Request Student Documents 
+15.     T-4. Use Case : Review Submitted Documents 
+16.     T-5. Use Case : View timetable 
+17.     T-6. Use Case : Schedule/Offer/Cancel meetings 

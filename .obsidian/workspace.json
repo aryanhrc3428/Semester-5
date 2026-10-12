@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "DP/notes/DP-ini.md",
-                "mode": "source",
+                "file": "SE/ideathon/pseudocode/test_suites/UC-14.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "DP-ini"
+              "title": "UC-14"
             }
           }
         ]
@@ -190,8 +190,22 @@
   },
   "active": "7bc82c7d30e60581",
   "lastOpenFiles": [
-    "DP/notes/DP-ini.pdf",
+    "SE/ideathon/pseudocode/test_suites/UC-13.md",
+    "SE/ideathon/pseudocode/test_suites/UC-12.md",
+    "SE/ideathon/pseudocode/test_suites/UC-11.md",
+    "SE/ideathon/pseudocode/test_suites/UC-10.md",
+    "SE/ideathon/pseudocode/test_suites/UC-09.md",
+    "SE/ideathon/pseudocode/test_suites/UC-08.md",
+    "SE/ideathon/pseudocode/test_suites/UC-07.md",
+    "SE/ideathon/pseudocode/test_suites/UC-06.md",
+    "SE/ideathon/pseudocode/test_suites/UC-05.md",
+    "SE/ideathon/pseudocode/test_suites/UC-04.md",
+    "SE/ideathon/pseudocode/test_suites/UC-03.md",
+    "SE/ideathon/pseudocode/test_suites/UC-02.md",
+    "SE/ideathon/pseudocode/test_suites/UC-01.md",
+    "SE/ideathon/pseudocode/paths_and_complexity/UC-01.md",
     "DP/notes/DP-ini.md",
+    "DP/notes/DP-ini.pdf",
     "AADS/notes/test-1-questions.md",
     "AADS/notes/test-1-questions.pdf",
     "AADS/notes/unit-1.md",

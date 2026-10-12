@@ -1,16 +1,16 @@
-1: procedure TICRequestDocument(tic_id, query_id, doc_note)
+1: procedure TICResolveQuery(tic_id, query_id, resolution_text, add_to_kb_flag)
 2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if tic_id is null or query_id is null or doc_note is null
+3:     if tic_id is null or query_id is null or resolution_text is null or add_to_kb_flag is null
 4:     then
 5:         return error "Validation Failed: Parameters cannot be null"
 6:     end if
-7:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(doc_note) != "string"
+7:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(resolution_text) != "string" or typeof(add_to_kb_flag) != "boolean"
 8:     then
 9:         return error "Validation Failed: Invalid parameter data types"
 10:    end if
-11:    if length(doc_note) < 5 or length(doc_note) > 1000
+11:    if length(resolution_text) < 10 or length(resolution_text) > 5000
 12:    then
-13:        return error "Validation Failed: Document request note length out of bounds"
+13:        return error "Validation Failed: Resolution text length out of bounds"
 14:    end if
 15:    // 2. Strict Role-Based Access Control (RBAC) Validation
 16:    try
@@ -24,48 +24,58 @@
 24:        logError(db_err)
 25:        return error "System Error: Unable to validate permissions"
 26:    end try
-27:    // 3. Explicit Ownership and State Validation (IDOR Prevention)
+27:    // 3. Explicit Ownership and Integrity Validation (IDOR Prevention)
 28:    try
-29:        query_check <- "SELECT assigned_tic, student_id, status FROM D3_QUERIES WHERE query_id = ?"
+29:        query_check <- "SELECT assigned_tic, student_id, description, category FROM D3_QUERIES WHERE query_id = ?"
 30:        target_query <- executeParameterizedQuery(query_check, [query_id])
 31:        if target_query is empty
 32:        then
 33:            return error "Database Error: Target query reference not found"
 34:        end if
-35:        // Ensure the TIC attempting to request documents actually owns the ticket
+35:        // Crucial check: Ensure the TIC attempting to resolve actually owns the ticket
 36:        if target_query.assigned_tic != tic_id
 37:        then
-38:            return error "Security Error: Unauthorized. You can only manage queries explicitly assigned to you."
+38:            return error "Security Error: Unauthorized. You can only resolve queries explicitly assigned to you."
 39:        end if
-40:        // Prevent requesting documents on closed queries
-41:        if target_query.status = "Resolved" or target_query.status = "Closed"
-42:        then
-43:            return error "State Error: Cannot request documents for a closed or resolved query."
-44:        end if
-45:    catch DatabaseException as db_err
-46:        logError(db_err)
-47:        return error "System Error: Unable to validate query ownership and state"
-48:    end try
-49:    // 4. Secure Database Transaction for State Transition and Audit
-50:    current_time <- getSystemTimestamp()
-51:    try
-52:        beginTransaction()
-53:        // Assuming 'doc_request_note' is a dedicated field or stored in a generic 'status_note' column
-54:        update_sql <- "UPDATE D3_QUERIES SET status = ?, doc_request_note = ?, updated_at = ? WHERE query_id = ?"
-55:        executeParameterizedUpdate(update_sql, ["Documents Required", doc_note, current_time, query_id])
-56:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
-57:        executeParameterizedInsert(audit_sql, [tic_id, "Request Document", "Query", query_id, current_time])
-58:        commitTransaction()
-59:    catch DatabaseException as db_err
-60:        rollbackTransaction()
-61:        logError(db_err)
-62:        return error "Database Error: Failed to update query state and commit audit log"
-63:    end try
-64:    // 5. Fire-and-Forget Asynchronous Notification
-65:    try
-66:        call DispatchNotificationAsync(target_query.student_id, "Document Required", query_id)
-67:    catch NetworkException as net_err
-68:        logError("Warning: Failed to dispatch document request notification to student for query " + query_id)
-69:    end try
-70:    return success "Document request successfully logged and student notified", query_id
-71: end procedure
+40:    catch DatabaseException as db_err
+41:        logError(db_err)
+42:        return error "System Error: Unable to validate query ownership"
+43:    end try
+44:    // 4. Secure Database Transaction for Resolution and Audit
+45:    current_time <- getSystemTimestamp()
+46:    try
+47:        beginTransaction()
+48:        update_sql <- "UPDATE D3_QUERIES SET status = ?, resolution = ?, resolved_by = ?, updated_at = ? WHERE query_id = ?"
+49:        executeParameterizedUpdate(update_sql, ["Resolved", resolution_text, tic_id, current_time, query_id])
+50:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+51:        executeParameterizedInsert(audit_sql, [tic_id, "Resolve", "Query", query_id, current_time])
+52:        commitTransaction()
+53:    catch DatabaseException as db_err
+54:        rollbackTransaction()
+55:        logError(db_err)
+56:        return error "Database Error: Failed to resolve query and commit audit log"
+57:    end try
+58:    // 5. Conditional Knowledge Base Escalation (Isolated from main transaction)
+59:    if add_to_kb_flag = true
+60:    then
+61:        try
+62:            kb_payload <- initialize new dictionary
+63:            kb_payload["title"] <- target_query.description
+64:            kb_payload["content"] <- resolution_text
+65:            kb_payload["category"] <- target_query.category
+66:            kb_payload["source"] <- concat("TIC Resolution - ", tic_id)
+67:            // Call procedure 6.0 seamlessly
+68:            call KnowledgeBaseManagement(tic_id, "Create", kb_payload)
+69:        catch SystemException as sys_err
+70:            // Log failure but do not fail the overall query resolution
+71:            logError("Warning: Failed to add resolution to Knowledge Base for query " + query_id)
+72:        end try
+73:    end if
+74:    // 6. Fire-and-Forget Asynchronous Notification
+75:    try
+76:        call DispatchNotificationAsync(target_query.student_id, "Query Resolved", query_id)
+77:    catch NetworkException as net_err
+78:        logError("Warning: Failed to dispatch resolution notification to student for query " + query_id)
+79:    end try
+80:    return success "Query successfully resolved", query_id
+81: end procedure

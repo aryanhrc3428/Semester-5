@@ -1,79 +1,106 @@
-1: procedure ViewTimetableAvailability(tic_id, target_date)
-2:     // 1. Initial Type, Null, and Boundary Validation
-3:     if tic_id is null or target_date is null
+1: procedure TICReviewDocument(tic_id, query_id, doc_id, review_decision, review_notes)
+2:     // 1. Initial Type and Null Validation
+3:     if tic_id is null or query_id is null or doc_id is null or review_decision is null
 4:     then
-5:         return error "Validation Failed: Parameters cannot be null"
+5:         return error "Validation Failed: Core parameters cannot be null"
 6:     end if
-7:     if typeof(tic_id) != "string" or typeof(target_date) != "string"
+7:     if typeof(tic_id) != "string" or typeof(query_id) != "string" or typeof(doc_id) != "string" or typeof(review_decision) != "string"
 8:     then
 9:         return error "Validation Failed: Invalid parameter data types"
 10:    end if
-11:    // Explicitly validate ISO 8601 Date Format (YYYY-MM-DD) Length
-12:    if length(target_date) != 10
-13:    then
-14:        return error "Validation Failed: Invalid date format, expected YYYY-MM-DD"
-15:    end if
-16:    // 2. Strict Role-Based Access Control (RBAC) Validation
-17:    try
-18:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-19:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-20:        if role_record is empty or role_record.role_name != "TIC"
-21:        then
-22:            return error "Security Error: Unauthorized access. TIC privileges required."
-23:        end if
-24:    catch DatabaseException as db_err
-25:        logError(db_err)
-26:        return error "System Error: Unable to validate permissions"
-27:    end try
-28:    // 3. Resilient External Timetable Fetch
-29:    base_schedule <- empty list
-30:    try
-31:        // Returns an array of time slots, e.g., [{start_time: "09:00", end_time: "10:00"}, ...]
-32:        base_schedule <- call ExternalTimetableService_Fetch(tic_id, target_date)
-33:        if base_schedule is null
-34:        then
-35:            return error "API Error: Timetable service returned a null schedule"
-36:        end if
-37:    catch NetworkException as net_err
-38:        logError(net_err)
-39:        return error "System Error: External timetable service is temporarily unavailable"
-40:    end try
-41:    // If the base schedule is empty (e.g., weekend/holiday), return early
-42:    if length(base_schedule) = 0
-43:    then
-44:        return success "No slots available on this date", empty list
-45:    end if
-46:    // 4. Secure Database Retrieval of Existing Bookings
-47:    booked_meetings <- empty list
-48:    try
-49:        // Fetch only active meetings to prevent cancelled ones from blocking slots
-50:        meeting_query <- "SELECT start_time, end_time FROM D5_MEETINGS WHERE assigned_tic = ? AND meeting_date = ? AND status != ?"
-51:        booked_meetings <- executeParameterizedQuery(meeting_query, [tic_id, target_date, "Cancelled"])
-52:    catch DatabaseException as db_err
-53:        logError(db_err)
-54:        return error "Database Error: Failed to retrieve existing meeting bookings"
-55:    end try
-56:    // 5. Explicit Algorithmic Conflict Resolution (Nested Loops)
-57:    available_slots <- empty list
-58:    for i <- 0 to length(base_schedule) - 1
-59:    do
-60:        current_slot <- base_schedule[i]
-61:        has_conflict <- false
-62:        for j <- 0 to length(booked_meetings) - 1
-63:        do
-64:            booked_slot <- booked_meetings[j]
-65:            // Explicit Time Overlap Math: Two intervals overlap if (Start1 < End2) AND (End1 > Start2)
-66:            if (current_slot.start_time < booked_slot.end_time) and (current_slot.end_time > booked_slot.start_time)
-67:            then
-68:                has_conflict <- true
-69:                break // Optimization: Exit inner loop immediately upon finding first conflict
-70:            end if
-71:        end for
-72:        // If the inner loop finishes without tripping the conflict flag, the slot is free
-73:        if has_conflict = false
-74:        then
-75:            insert current_slot into available_slots
-76:        end if
-77:    end for
-78:    return success "Timetable availability calculated successfully", available_slots
-79: end procedure
+11:    // 2. Explicit Decision Validation Loop
+12:    valid_decisions <- array of strings {"Accept", "Reject"}
+13:    is_valid_decision <- false
+14:    for i <- 0 to length(valid_decisions) - 1
+15:    do
+16:        if review_decision = valid_decisions[i]
+17:        then
+18:            is_valid_decision <- true
+19:            break
+20:        end if
+21:    end for
+22:    if is_valid_decision = false
+23:    then
+24:        return error "Validation Failed: Decision must be 'Accept' or 'Reject'"
+25:    end if
+26:    // Note constraint: Rejections require a justification
+27:    if review_decision = "Reject" and (review_notes is null or length(review_notes) < 5)
+28:    then
+29:        return error "Validation Failed: Rejection requires detailed review notes"
+30:    end if
+31:    // 3. Strict Role-Based Access Control (RBAC) Validation
+32:    try
+33:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+34:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
+35:        if role_record is empty or role_record.role_name != "TIC"
+36:        then
+37:            return error "Security Error: Unauthorized access. TIC privileges required."
+38:        end if
+39:    catch DatabaseException as db_err
+40:        logError(db_err)
+41:        return error "System Error: Unable to validate permissions"
+42:    end try
+43:    // 4. Explicit Ownership and State Validation (IDOR Prevention)
+44:    try
+45:        // Verify Query Ownership
+46:        query_check <- "SELECT assigned_tic, student_id FROM D3_QUERIES WHERE query_id = ?"
+47:        target_query <- executeParameterizedQuery(query_check, [query_id])
+48:        if target_query is empty
+49:        then
+50:            return error "Database Error: Target query reference not found"
+51:        end if
+52:        if target_query.assigned_tic != tic_id
+53:        then
+54:            return error "Security Error: Unauthorized. You can only review documents for queries assigned to you."
+55:        end if
+56:        // Verify Document Exists, belongs to this Query, and is Pending
+57:        doc_check <- "SELECT status FROM D4_DOCUMENTS WHERE document_id = ? AND query_id = ?"
+58:        target_doc <- executeParameterizedQuery(doc_check, [doc_id, query_id])
+59:        if target_doc is empty
+60:        then
+61:            return error "Database Error: Document not found or does not belong to the specified query"
+62:        end if
+63:        if target_doc.status != "Pending Review"
+64:        then
+65:            return error "State Error: Document is not in a reviewable state"
+66:        end if
+67:    catch DatabaseException as db_err
+68:        logError(db_err)
+69:        return error "System Error: Unable to validate query and document integrity"
+70:    end try
+71:    // 5. Secure Database Transaction for Dual-State Transition
+72:    current_time <- getSystemTimestamp()
+73:    notification_type <- ""
+74:    try
+75:        beginTransaction()
+76:        if review_decision = "Accept"
+77:        then
+78:            doc_update <- "UPDATE D4_DOCUMENTS SET status = ?, review_notes = ?, updated_at = ? WHERE document_id = ?"
+79:            executeParameterizedUpdate(doc_update, ["Verified", review_notes, current_time, doc_id])
+80:            query_update <- "UPDATE D3_QUERIES SET status = ?, updated_at = ? WHERE query_id = ?"
+81:            executeParameterizedUpdate(query_update, ["Assigned to TIC", current_time, query_id])
+82:            notification_type <- "Document Accepted"
+83:        else if review_decision = "Reject"
+84:        then
+85:            doc_update <- "UPDATE D4_DOCUMENTS SET status = ?, review_notes = ?, updated_at = ? WHERE document_id = ?"
+86:            executeParameterizedUpdate(doc_update, ["Rejected", review_notes, current_time, doc_id])
+87:            query_update <- "UPDATE D3_QUERIES SET status = ?, updated_at = ? WHERE query_id = ?"
+88:            executeParameterizedUpdate(query_update, ["Documents Required", current_time, query_id])
+89:            notification_type <- "Document Rejected"
+90:        end if
+91:        audit_sql <- "INSERT INTO D7_AUDIT_LOGS (user_id, action_type, entity, entity_id, timestamp) VALUES (?, ?, ?, ?, ?)"
+92:        executeParameterizedInsert(audit_sql, [tic_id, concat("Review Document - ", review_decision), "Document", doc_id, current_time])
+93:        commitTransaction()
+94:    catch DatabaseException as db_err
+95:        rollbackTransaction()
+96:        logError(db_err)
+97:        return error "Database Error: Failed to update document and query states"
+98:    end try
+99:    // 6. Fire-and-Forget Asynchronous Notification
+100:   try
+101:       call DispatchNotificationAsync(target_query.student_id, notification_type, query_id)
+102:   catch NetworkException as net_err
+103:       logError("Warning: Failed to dispatch document review notification to student for query " + query_id)
+104:   end try
+105:   return success concat("Document successfully ", review_decision, "ed"), doc_id
+106: end procedure

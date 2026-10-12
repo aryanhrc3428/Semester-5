@@ -1,76 +1,125 @@
-1: procedure TICViewAssignedQueries(tic_id)
+1: procedure KnowledgeBaseManagement(admin_id, action_type, entry_data)
 2:     // 1. Initial Type and Null Validation
-3:     if tic_id is null
+3:     if admin_id is null or action_type is null or entry_data is null
 4:     then
-5:         return error "Validation Failed: TIC ID cannot be null"
+5:         return error "Validation Failed: Base parameters cannot be null"
 6:     end if
-7:     if typeof(tic_id) != "string"
+7:     if typeof(action_type) != "string" or typeof(entry_data) != "dictionary"
 8:     then
-9:         return error "Validation Failed: Invalid data type for TIC ID"
+9:         return error "Validation Failed: Invalid parameter data types"
 10:    end if
-11:    // 2. Strict Role-Based Access Control (RBAC) Validation
-12:    try
-13:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
-14:        role_record <- executeParameterizedQuery(rbac_query, [tic_id])
-15:        if role_record is empty
-16:        then
-17:            return error "Database Error: User identity not found"
-18:        end if
-19:        if role_record.role_name != "TIC"
-20:        then
-21:            return error "Security Error: Unauthorized access. TIC privileges required."
-22:        end if
-23:    catch DatabaseException as db_err
-24:        logError(db_err)
-25:        return error "System Error: Unable to validate permissions"
-26:    end try
-27:    // 3. Secure Base Query Retrieval (Filtered by Ownership)
-28:    assigned_queries <- empty list
-29:    try
-30:        // Fetch only queries assigned to this specific TIC, sorted chronologically
-31:        query_string <- "SELECT * FROM D3_QUERIES WHERE assigned_tic = ? ORDER BY updated_at DESC"
-32:        assigned_queries <- executeParameterizedQuery(query_string, [tic_id])
-33:    catch DatabaseException as db_err
-34:        logError(db_err)
-35:        return error "Database Error: Failed to retrieve assigned queries"
-36:    end try
-37:    // If no queries are assigned to this TIC, return gracefully
-38:    if length(assigned_queries) = 0
-39:    then
-40:        return success "No assigned queries found", empty list
-41:    end if
-42:    // 4. Data Aggregation Loop for Dashboard Context
-43:    tic_dashboard_view <- empty list
-44:    for i <- 0 to length(assigned_queries) - 1
-45:    do
-46:        current_query <- assigned_queries[i]
-47:        student_details <- initialize new dictionary
-48:        // Resolve student details within an isolated try-catch to prevent dashboard failure
-49:        try
-50:            student_sql <- "SELECT name, email, department_id FROM USERS WHERE user_id = ?"
-51:            student_record <- executeParameterizedQuery(student_sql, [current_query.student_id])
-52:            if student_record is not empty
-53:            then
-54:                student_details["name"] <- student_record.name
-55:                student_details["email"] <- student_record.email
-56:                student_details["department_id"] <- student_record.department_id
-57:            else
-58:                student_details["name"] <- "Unknown Student"
-59:                student_details["email"] <- "Unknown Email"
-60:                student_details["department_id"] <- "Unknown"
-61:            end if
-62:        catch DatabaseException as db_err
-63:            logError("Warning: Failed to load student details for query " + current_query.query_id)
-64:            student_details["name"] <- "Data unavailable"
-65:            student_details["email"] <- "Data unavailable"
-66:            student_details["department_id"] <- "Data unavailable"
-67:        end try
-68:        // 5. Construct Compiled Record
-69:        compiled_record <- initialize new dictionary
-70:        compiled_record["query_details"] <- current_query
-71:        compiled_record["student_info"] <- student_details
-72:        // Append to final view array
-73:        insert compiled_record into tic_dashboard_view at index i
-74:    end for
-75:    return success "TIC dashboard data retrieved successfully", tic_dashboard_view
-76: end procedure
+11:    // 2. Explicit Action Type Validation
+12:    valid_actions <- array of strings {"Create", "Update", "Deactivate"}
+13:    is_valid_action <- false
+14:    for i <- 0 to length(valid_actions) - 1
+15:    do
+16:        if action_type = valid_actions[i]
+17:        then
+18:            is_valid_action <- true
+19:            break
+20:        end if
+21:    end for
+22:    if is_valid_action = false
+23:    then
+24:        return error "Validation Failed: Unrecognized action type"
+25:    end if
+26:    // 3. Strict Role-Based Access Control (RBAC)
+27:    try
+28:        rbac_query <- "SELECT R.role_name FROM USERS U JOIN ROLE R ON U.role_id = R.role_id WHERE U.user_id = ?"
+29:        role_record <- executeParameterizedQuery(rbac_query, [admin_id])
+30:        if role_record is empty
+31:        then
+32:            return error "Database Error: User identity not found"
+33:        end if
+34:        if role_record.role_name != "Admin" and role_record.role_name != "Authorized TIC"
+35:        then
+36:            return error "Security Error: Unauthorized modification attempt"
+37:        end if
+38:    catch DatabaseException as db_err
+39:        logError(db_err)
+40:        return error "System Error: Unable to validate permissions"
+41:    end try
+42:    current_time <- getSystemTimestamp()
+43:    // 4. Branch: Create Entry
+44:    if action_type = "Create"
+45:    then
+46:        if entry_data["title"] is null or entry_data["content"] is null
+47:        then
+48:            return error "Validation Failed: Title and content are required for creation"
+49:        end if
+50:        embedding_vector <- null
+51:        try
+52:            embedding_vector <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
+53:            if embedding_vector is null or length(embedding_vector) = 0
+54:            then
+55:                return error "API Error: Failed to generate vector embedding"
+56:            end if
+57:        catch NetworkException as net_err
+58:            logError(net_err)
+59:            return error "System Error: AI Embedding service unavailable"
+60:        end try
+61:        new_kb_id <- generateSecureUUID()
+62:        try
+63:            insert_kb <- "INSERT INTO D2_KNOWLEDGE (kb_id, title, content, category, source, verification_status, validity_status, embedding, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+64:            executeParameterizedInsert(insert_kb, [new_kb_id, entry_data["title"], entry_data["content"], entry_data["category"], entry_data["source"], "Verified", "Active", embedding_vector, admin_id, current_time, current_time])
+65:            return success "Knowledge Base entry created", new_kb_id
+66:        catch DatabaseException as db_err
+67:            logError(db_err)
+68:            return error "Database Error: Failed to insert new KB entry"
+69:        end try
+70:    // 5. Branch: Update Entry
+71:    else if action_type = "Update"
+72:    then
+73:        if entry_data["kb_id"] is null
+74:        then
+75:            return error "Validation Failed: KB ID required for update"
+76:        end if
+77:        try
+78:            fetch_kb <- "SELECT content FROM D2_KNOWLEDGE WHERE kb_id = ?"
+79:            existing_entry <- executeParameterizedQuery(fetch_kb, [entry_data["kb_id"]])
+80:            if existing_entry is empty
+81:            then
+82:                return error "Database Error: Knowledge Base entry not found"
+83:            end if
+84:            update_query <- "UPDATE D2_KNOWLEDGE SET title = ?, category = ?, source = ?, updated_at = ?"
+85:            update_params <- array of variables {entry_data["title"], entry_data["category"], entry_data["source"], current_time}
+86:            // Conditionally regenerate embeddings only if content changed
+87:            if entry_data["content"] != null and entry_data["content"] != existing_entry.content
+88:            then
+89:                new_embedding <- call GeminiAPI_GenerateEmbedding(entry_data["content"])
+90:                update_query <- concat(update_query, ", content = ?, embedding = ?")
+91:                append entry_data["content"] to update_params
+92:                append new_embedding to update_params
+93:            end if
+94:            update_query <- concat(update_query, " WHERE kb_id = ?")
+95:            append entry_data["kb_id"] to update_params
+96:            executeParameterizedUpdate(update_query, update_params)
+97:            return success "Knowledge Base entry updated", entry_data["kb_id"]
+98:        catch DatabaseException as db_err
+99:            logError(db_err)
+100:           return error "Database Error: Failed to update KB entry"
+101:       catch NetworkException as net_err
+102:           logError(net_err)
+103:           return error "System Error: AI Embedding service unavailable during update"
+104:       end try
+105:   // 6. Branch: Deactivate Entry
+106:   else if action_type = "Deactivate"
+107:   then
+108:       if entry_data["kb_id"] is null
+109:       then
+110:           return error "Validation Failed: KB ID required for deactivation"
+111:       end if
+112:       try
+113:           deact_query <- "UPDATE D2_KNOWLEDGE SET validity_status = ?, updated_at = ? WHERE kb_id = ?"
+114:           rows_affected <- executeParameterizedUpdate(deact_query, ["Inactive", current_time, entry_data["kb_id"]])
+115:           if rows_affected = 0
+116:           then
+117:               return error "Database Error: Target entry not found or already inactive"
+118:           end if
+119:           return success "Knowledge Base entry deactivated", entry_data["kb_id"]
+120:       catch DatabaseException as db_err
+121:           logError(db_err)
+122:           return error "Database Error: Failed to deactivate KB entry"
+123:       end try
+124:   end if
+125: end procedure
