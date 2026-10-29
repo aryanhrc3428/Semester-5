@@ -1,0 +1,695 @@
+{
+ "TC-UC01-01": [
+  "Validation Failed: Credentials cannot be null"
+ ],
+ "TC-UC01-02": [
+  "Validation Failed: Invalid data type"
+ ],
+ "TC-UC01-03": [
+  "Validation Failed: Username length out of bounds"
+ ],
+ "TC-UC01-04": [
+  "Validation Failed: Illegal characters detected"
+ ],
+ "TC-UC01-06": [
+  "Database Error: User verified externally but local account missing"
+ ],
+ "TC-UC01-07": [
+  "Database Error: User lacks assigned system role"
+ ],
+ "TC-UC01-08": [
+  "System Error: Unable to complete authentication transaction"
+ ],
+ "TC-UC01-09": [
+  "Authentication Failed: Maximum attempts exceeded or service unavailable"
+ ],
+ "TC-UC01-10": [
+  "Authentication Failed: Maximum attempts exceeded or service unavailable"
+ ],
+ "TC-UC01-13": [
+  "Authentication Failed: Maximum attempts exceeded or service unavailable"
+ ],
+ "TC-UC02-01": [
+  "Validation Failed: Inputs cannot be null"
+ ],
+ "TC-UC02-02": [
+  "Validation Failed: Invalid data types"
+ ],
+ "TC-UC02-03": [
+  "Validation Failed: Query length out of bounds"
+ ],
+ "TC-UC02-04": [
+  "Validation Failed: Threshold must be between 0.0 and 1.0"
+ ],
+ "TC-UC02-05": [
+  "System Error: AI Embedding service unavailable"
+ ],
+ "TC-UC02-06": [
+  "API Error: Failed to generate valid embedding vector"
+ ],
+ "TC-UC02-07": [
+  "Database Error: Failed to retrieve Knowledge Base entries"
+ ],
+ "TC-UC02-08": [
+  "Escalation Required"
+ ],
+ "TC-UC02-09": [
+  "Escalation Required"
+ ],
+ "TC-UC02-10": [
+  "Escalation Required"
+ ],
+ "TC-UC02-11": [
+  "Grounded Answer"
+ ],
+ "TC-UC02-12": [
+  "System Error: AI Generation service unavailable"
+ ],
+ "TC-UC02-13": [
+  "Escalation Required"
+ ],
+ "TC-UC02-14": [
+  "Grounded Answer"
+ ],
+ "TC-UC02-15": [
+  "Grounded Answer"
+ ],
+ "TC-UC02-16": [
+  "Escalation Required"
+ ],
+ "TC-UC03-01": [
+  "Validation Failed: Inputs cannot be null"
+ ],
+ "TC-UC03-02": [
+  "Validation Failed: Invalid data types"
+ ],
+ "TC-UC03-03": [
+  "Validation Failed: Query text length out of bounds"
+ ],
+ "TC-UC03-04": [
+  "Validation Failed: Unrecognized query category"
+ ],
+ "TC-UC03-05": [
+  "System Error: Unable to validate relational constraints"
+ ],
+ "TC-UC03-06": [
+  "Database Error: Invalid student identity"
+ ],
+ "TC-UC03-07": [
+  "Database Error: Invalid department reference"
+ ],
+ "TC-UC03-08": [
+  "Database Error: Failed to save new query"
+ ],
+ "TC-UC03-09": [
+  "Query submitted successfully"
+ ],
+ "TC-UC03-10": [
+  "Query submitted successfully"
+ ],
+ "TC-UC03-11": [
+  "Query submitted successfully"
+ ],
+ "TC-UC03-12": [
+  "Validation Failed: Unrecognized query category"
+ ],
+ "TC-UC04-01": [
+  "Validation Failed: Student ID cannot be null"
+ ],
+ "TC-UC04-02": [
+  "Validation Failed: Invalid data type for Student ID"
+ ],
+ "TC-UC04-03": [
+  "System Error: Unable to validate user identity"
+ ],
+ "TC-UC04-04": [
+  "Database Error: Student identity not found"
+ ],
+ "TC-UC04-05": [
+  "Database Error: Failed to retrieve student queries"
+ ],
+ "TC-UC04-06": [
+  "No queries found"
+ ],
+ "TC-UC04-07": [
+  "Dashboard data retrieved successfully"
+ ],
+ "TC-UC04-08": [
+  "Dashboard data retrieved successfully"
+ ],
+ "TC-UC04-09": [
+  "Dashboard data retrieved successfully"
+ ],
+ "TC-UC05-01": [
+  "Validation Failed: Inputs cannot be null"
+ ],
+ "TC-UC05-02": [
+  "Validation Failed: Invalid file object structure"
+ ],
+ "TC-UC05-03": [
+  "Validation Failed: File size must be between 1 byte and 25MB"
+ ],
+ "TC-UC05-04": [
+  "Validation Failed: Unsupported file format detected"
+ ],
+ "TC-UC05-05": [
+  "System Error: Unable to validate query ownership"
+ ],
+ "TC-UC05-06": [
+  "Database Error: Invalid query reference"
+ ],
+ "TC-UC05-07": [
+  "Security Error: Unauthorized attempt to upload to another user's query"
+ ],
+ "TC-UC05-08": [
+  "System Error: File upload service temporarily unavailable"
+ ],
+ "TC-UC05-09": [
+  "Cloud Error: S3 returned null storage key"
+ ],
+ "TC-UC05-10": [
+  "Database Error: Failed to save document records"
+ ],
+ "TC-UC05-11": [
+  "Document securely uploaded and linked"
+ ],
+ "TC-UC05-12": [
+  "Document securely uploaded and linked"
+ ],
+ "TC-UC05-13": [
+  "Document securely uploaded and linked"
+ ],
+ "TC-UC05-14": [
+  "Validation Failed: Unsupported file format detected"
+ ],
+ "TC-UC06-01": [
+  "Validation Failed: Core parameters cannot be null"
+ ],
+ "TC-UC06-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC06-03": [
+  "Validation Failed: Action must be 'ViewSlots', 'RequestSlot', or 'AcceptMeeting'"
+ ],
+ "TC-UC06-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC06-05": [
+  "Security Error: User account not found"
+ ],
+ "TC-UC06-06": [
+  "Validation Failed: TIC ID and target date required to view slots"
+ ],
+ "TC-UC06-07": [
+  "Database Error: Failed to retrieve slot availability"
+ ],
+ "TC-UC06-08": [
+  "Available slots retrieved successfully"
+ ],
+ "TC-UC06-09": [
+  "Security Error: Only students can request meeting slots"
+ ],
+ "TC-UC06-10": [
+  "Validation Failed: Slot ID and Query ID required for request"
+ ],
+ "TC-UC06-11": [
+  "State Error: Selected slot is no longer available"
+ ],
+ "TC-UC06-12": [
+  "Database Error: Failed to process slot request securely"
+ ],
+ "TC-UC06-13": [
+  "Action successfully processed: RequestSlot"
+ ],
+ "TC-UC06-14": [
+  "Action successfully processed: RequestSlot"
+ ],
+ "TC-UC06-15": [
+  "Security Error: Only TICs can accept meeting slots"
+ ],
+ "TC-UC06-16": [
+  "Validation Failed: Slot ID required to accept meeting"
+ ],
+ "TC-UC06-17": [
+  "Database Error: Slot reference not found"
+ ],
+ "TC-UC06-18": [
+  "Security Error: Unauthorized attempt to accept another TIC's slot"
+ ],
+ "TC-UC06-19": [
+  "State Error: Slot must be in 'Requested' state to accept"
+ ],
+ "TC-UC06-20": [
+  "Database Error: Failed to accept meeting slot safely"
+ ],
+ "TC-UC06-21": [
+  "Action successfully processed: AcceptMeeting"
+ ],
+ "TC-UC06-22": [
+  "Action successfully processed: AcceptMeeting"
+ ],
+ "TC-UC06-23": [
+  "Action successfully processed: ViewSlots"
+ ],
+ "TC-UC06-24": [
+  "Action successfully processed: RequestSlot"
+ ],
+ "TC-UC06-25": [
+  "Validation Failed: Action must be 'ViewSlots', 'RequestSlot', or 'AcceptMeeting'"
+ ],
+ "TC-UC07-01": [
+  "Validation Failed: Inputs cannot be null"
+ ],
+ "TC-UC07-02": [
+  "Validation Failed: Invalid data types"
+ ],
+ "TC-UC07-03": [
+  "Validation Failed: Unrecognized event type"
+ ],
+ "TC-UC07-04": [
+  "Database Error: Failed to resolve target email addresses"
+ ],
+ "TC-UC07-05": [
+  "Resolution Error: No valid email addresses found for target"
+ ],
+ "TC-UC07-06": [
+  "Resolution Error: No valid email addresses found for target"
+ ],
+ "TC-UC07-07": [
+  "Resolution Error: No valid email addresses found for target"
+ ],
+ "TC-UC07-10": [
+  "Dispatch Failed: Unable to send any notifications"
+ ],
+ "TC-UC07-11": [
+  "Dispatch Failed: Unable to send any notifications"
+ ],
+ "TC-UC07-17": [
+  "Validation Failed: Unrecognized event type"
+ ],
+ "TC-UC08-01": [
+  "Validation Failed: Admin ID cannot be null"
+ ],
+ "TC-UC08-02": [
+  "Validation Failed: Invalid data type for Admin ID"
+ ],
+ "TC-UC08-03": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC08-04": [
+  "Database Error: Admin identity not found"
+ ],
+ "TC-UC08-05": [
+  "Security Error: Unauthorized access. Admin privileges required."
+ ],
+ "TC-UC08-06": [
+  "Database Error: Failed to retrieve open queries"
+ ],
+ "TC-UC08-07": [
+  "No new queries found"
+ ],
+ "TC-UC08-08": [
+  "Admin dashboard data retrieved successfully"
+ ],
+ "TC-UC08-09": [
+  "Admin dashboard data retrieved successfully"
+ ],
+ "TC-UC08-10": [
+  "Admin dashboard data retrieved successfully"
+ ],
+ "TC-UC08-11": [
+  "Admin dashboard data retrieved successfully"
+ ],
+ "TC-UC09-01": [
+  "Validation Failed: Parameters cannot be null"
+ ],
+ "TC-UC09-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC09-03": [
+  "Validation Failed: Resolution text length out of bounds"
+ ],
+ "TC-UC09-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC09-05": [
+  "Security Error: Unauthorized access. Admin privileges required."
+ ],
+ "TC-UC09-06": [
+  "System Error: Unable to validate query reference"
+ ],
+ "TC-UC09-07": [
+  "Database Error: Target query reference not found"
+ ],
+ "TC-UC09-08": [
+  "Database Error: Failed to resolve query and commit audit log"
+ ],
+ "TC-UC09-09": [
+  "Query successfully resolved"
+ ],
+ "TC-UC09-10": [
+  "Query successfully resolved"
+ ],
+ "TC-UC09-11": [
+  "Query successfully resolved"
+ ],
+ "TC-UC09-12": [
+  "Query successfully resolved"
+ ],
+ "TC-UC10-01": [
+  "Validation Failed: Parameters cannot be null"
+ ],
+ "TC-UC10-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC10-03": [
+  "System Error: Unable to validate caller permissions"
+ ],
+ "TC-UC10-04": [
+  "Security Error: Unauthorized access. Admin privileges required."
+ ],
+ "TC-UC10-05": [
+  "System Error: Unable to validate target user role"
+ ],
+ "TC-UC10-06": [
+  "Database Error: Target user identity not found"
+ ],
+ "TC-UC10-07": [
+  "Security Error: Cannot assign query. Target user is not a Teacher-in-Charge."
+ ],
+ "TC-UC10-08": [
+  "System Error: Unable to validate query reference"
+ ],
+ "TC-UC10-09": [
+  "Database Error: Target query reference not found"
+ ],
+ "TC-UC10-10": [
+  "Database Error: Failed to assign query and commit audit log"
+ ],
+ "TC-UC10-11": [
+  "Query successfully forwarded to TIC"
+ ],
+ "TC-UC10-12": [
+  "Query successfully forwarded to TIC"
+ ],
+ "TC-UC11-01": [
+  "Validation Failed: TIC ID cannot be null"
+ ],
+ "TC-UC11-02": [
+  "Validation Failed: Invalid data type for TIC ID"
+ ],
+ "TC-UC11-03": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC11-04": [
+  "Database Error: User identity not found"
+ ],
+ "TC-UC11-05": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC11-06": [
+  "Database Error: Failed to retrieve assigned queries"
+ ],
+ "TC-UC11-07": [
+  "No assigned queries found"
+ ],
+ "TC-UC11-08": [
+  "TIC dashboard data retrieved successfully"
+ ],
+ "TC-UC11-09": [
+  "TIC dashboard data retrieved successfully"
+ ],
+ "TC-UC11-10": [
+  "TIC dashboard data retrieved successfully"
+ ],
+ "TC-UC11-11": [
+  "TIC dashboard data retrieved successfully"
+ ],
+ "TC-UC11-12": [
+  "Validation Failed: KB ID required for update"
+ ],
+ "TC-UC11-13": [
+  "Database Error: Failed to update KB entry"
+ ],
+ "TC-UC11-14": [
+  "Database Error: Knowledge Base entry not found"
+ ],
+ "TC-UC11-15": [
+  "Knowledge Base entry updated"
+ ],
+ "TC-UC11-16": [
+  "Knowledge Base entry updated"
+ ],
+ "TC-UC11-17": [
+  "System Error: AI Embedding service unavailable during update"
+ ],
+ "TC-UC11-18": [
+  "Validation Failed: KB ID required for deactivation"
+ ],
+ "TC-UC11-19": [
+  "Database Error: Failed to deactivate KB entry"
+ ],
+ "TC-UC11-20": [
+  "Database Error: Target entry not found or already inactive"
+ ],
+ "TC-UC11-21": [
+  "Knowledge Base entry deactivated"
+ ],
+ "TC-UC11-22": [
+  "Knowledge Base entry updated"
+ ],
+ "TC-UC11-23": [
+  "Validation Failed: Unrecognized action type"
+ ],
+ "TC-UC12-01": [
+  "Validation Failed: Parameters cannot be null"
+ ],
+ "TC-UC12-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC12-03": [
+  "Validation Failed: Resolution text length out of bounds"
+ ],
+ "TC-UC12-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC12-05": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC12-06": [
+  "System Error: Unable to validate query ownership"
+ ],
+ "TC-UC12-07": [
+  "Database Error: Target query reference not found"
+ ],
+ "TC-UC12-08": [
+  "Security Error: Unauthorized. You can only resolve queries explicitly assigned to you."
+ ],
+ "TC-UC12-09": [
+  "Database Error: Failed to resolve query and commit audit log"
+ ],
+ "TC-UC12-10": [
+  "Query successfully resolved"
+ ],
+ "TC-UC12-11": [
+  "Query successfully resolved"
+ ],
+ "TC-UC12-12": [
+  "Query successfully resolved"
+ ],
+ "TC-UC12-13": [
+  "Query successfully resolved"
+ ],
+ "TC-UC13-01": [
+  "Validation Failed: Parameters cannot be null"
+ ],
+ "TC-UC13-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC13-03": [
+  "Validation Failed: Document request note length out of bounds"
+ ],
+ "TC-UC13-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC13-05": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC13-06": [
+  "System Error: Unable to validate query ownership and state"
+ ],
+ "TC-UC13-07": [
+  "Database Error: Target query reference not found"
+ ],
+ "TC-UC13-08": [
+  "Security Error: Unauthorized. You can only manage queries explicitly assigned to you."
+ ],
+ "TC-UC13-09": [
+  "State Error: Cannot request documents for a closed or resolved query."
+ ],
+ "TC-UC13-10": [
+  "Database Error: Failed to update query state and commit audit log"
+ ],
+ "TC-UC13-11": [
+  "Document request successfully logged and student notified"
+ ],
+ "TC-UC13-12": [
+  "Document request successfully logged and student notified"
+ ],
+ "TC-UC14-01": [
+  "Validation Failed: Core parameters cannot be null"
+ ],
+ "TC-UC14-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC14-03": [
+  "Validation Failed: Decision must be 'Accept' or 'Reject'"
+ ],
+ "TC-UC14-04": [
+  "Validation Failed: Rejection requires detailed review notes"
+ ],
+ "TC-UC14-05": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC14-06": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC14-07": [
+  "System Error: Unable to validate query and document integrity"
+ ],
+ "TC-UC14-08": [
+  "Database Error: Target query reference not found"
+ ],
+ "TC-UC14-09": [
+  "Security Error: Unauthorized. You can only review documents for queries assigned to you."
+ ],
+ "TC-UC14-10": [
+  "Database Error: Document not found or does not belong to the specified query"
+ ],
+ "TC-UC14-11": [
+  "State Error: Document is not in a reviewable state"
+ ],
+ "TC-UC14-12": [
+  "Database Error: Failed to update document and query states"
+ ],
+ "TC-UC14-13": [
+  "Document successfully Accepted"
+ ],
+ "TC-UC14-14": [
+  "Document successfully Accepted"
+ ],
+ "TC-UC14-15": [
+  "Document successfully Rejected"
+ ],
+ "TC-UC14-16": [
+  "Document successfully Othered"
+ ],
+ "TC-UC14-17": [
+  "Document successfully Rejected"
+ ],
+ "TC-UC14-18": [
+  "Validation Failed: Decision must be 'Accept' or 'Reject'"
+ ],
+ "TC-UC15-01": [
+  "Validation Failed: Parameters cannot be null"
+ ],
+ "TC-UC15-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC15-03": [
+  "Validation Failed: Invalid date format, expected YYYY-MM-DD"
+ ],
+ "TC-UC15-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC15-05": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC15-06": [
+  "System Error: External timetable service is temporarily unavailable"
+ ],
+ "TC-UC15-07": [
+  "API Error: Timetable service returned a null schedule"
+ ],
+ "TC-UC15-08": [
+  "No slots available on this date"
+ ],
+ "TC-UC15-09": [
+  "Database Error: Failed to retrieve existing meeting bookings"
+ ],
+ "TC-UC15-10": [
+  "Timetable availability calculated successfully"
+ ],
+ "TC-UC15-11": [
+  "Timetable availability calculated successfully"
+ ],
+ "TC-UC15-12": [
+  "Timetable availability calculated successfully"
+ ],
+ "TC-UC15-13": [
+  "Timetable availability calculated successfully"
+ ],
+ "TC-UC15-14": [
+  "Timetable availability calculated successfully"
+ ],
+ "TC-UC16-01": [
+  "Validation Failed: Core parameters cannot be null"
+ ],
+ "TC-UC16-02": [
+  "Validation Failed: Invalid parameter data types"
+ ],
+ "TC-UC16-03": [
+  "Validation Failed: Action must be 'Schedule' or 'Cancel'"
+ ],
+ "TC-UC16-04": [
+  "System Error: Unable to validate permissions"
+ ],
+ "TC-UC16-05": [
+  "Security Error: Unauthorized access. TIC privileges required."
+ ],
+ "TC-UC16-06": [
+  "Validation Failed: Incomplete meeting scheduling data"
+ ],
+ "TC-UC16-07": [
+  "Database Error: Failed to schedule meeting safely"
+ ],
+ "TC-UC16-08": [
+  "Security Error: Cannot schedule meeting for an unassigned or invalid query"
+ ],
+ "TC-UC16-09": [
+  "Concurrency Error: Time slot has already been booked (Race Condition Prevented)"
+ ],
+ "TC-UC16-10": [
+  "Meeting successfully Scheduled"
+ ],
+ "TC-UC16-11": [
+  "Meeting successfully Scheduled"
+ ],
+ "TC-UC16-12": [
+  "Validation Failed: Meeting ID required for cancellation"
+ ],
+ "TC-UC16-13": [
+  "Database Error: Failed to cancel meeting safely"
+ ],
+ "TC-UC16-14": [
+  "Database Error: Meeting reference not found"
+ ],
+ "TC-UC16-15": [
+  "Security Error: Unauthorized attempt to cancel another TIC's meeting"
+ ],
+ "TC-UC16-16": [
+  "State Error: Meeting is already cancelled"
+ ],
+ "TC-UC16-17": [
+  "Meeting successfully Cancelled"
+ ],
+ "TC-UC16-18": [
+  "Meeting successfully Cancelled"
+ ],
+ "TC-UC16-19": [
+  "Meeting successfully Scheduled"
+ ],
+ "TC-UC16-20": [
+  "Meeting successfully Cancelled"
+ ]
+}

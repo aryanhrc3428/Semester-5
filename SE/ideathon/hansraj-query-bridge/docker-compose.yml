@@ -1,0 +1,17 @@
+# Optional: a ready-made PostgreSQL 16 + pgvector for local use ($0).
+#   docker compose up -d db
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hansraj_qb
+    ports: ["5432:5432"]
+    volumes: ["hqb_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hansraj_qb"]
+      interval: 5s
+      retries: 10
+volumes:
+  hqb_pg:
