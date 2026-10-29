@@ -18,3 +18,14 @@ SE/ref_*.pdf
 .instructions.md
 .rules.txt
 .obsidian/*
+
+# ideathon
+SE/ideathon/hansraj-query-bridge/node_modules/
+SE/ideathon/hansraj-query-bridge/.next/
+SE/ideathon/hansraj-query-bridge/__pycache__/
+SE/ideathon/hansraj-query-bridge/.venv/
+SE/ideathon/hansraj-query-bridge/backend/.env
+SE/ideathon/hansraj-query-bridge/backend/uploads/
+*.pyc
+SE/ideathon/hansraj-query-bridge/docs/
+SE/ideathon/hansraj-query-bridge/backend/.env.example
