@@ -1,1 +1,0 @@
-"""Hansraj Query Bridge backend."""
