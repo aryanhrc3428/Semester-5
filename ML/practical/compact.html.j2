@@ -1,0 +1,22 @@
+{%- extends 'lab/index.html.j2' -%}
+{% block extra_css %}
+{{ super() }}
+<style>
+  @page {
+    margin: 0.5in;
+  }
+  :root {
+    --jp-notebook-padding: 4px;
+    --jp-content-font-size1: 12px;
+    --jp-code-font-size: 11px;
+  }
+  body, .jp-RenderedHTMLCommon {
+    font-size: 12px !important;
+    line-height: 1.4;
+  }
+  pre, code, .CodeMirror, .jp-InputArea-editor {
+    font-size: 11px !important;
+    line-height: 1.35;
+  }
+</style>
+{% endblock extra_css %}
